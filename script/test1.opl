@@ -1,0 +1,10 @@
+class A {
+  public constructor(this: A) void {
+    this.f = 0;
+  }
+  public let f: int;
+}
+
+function main() void {
+  let a = new A();
+}

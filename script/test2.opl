@@ -1,0 +1,7 @@
+module Math = load_library('D:\CLionProjects\ProgramLanguage\test1.opl');
+
+function test() void {
+	let z = -1;
+	let g = 0;
+
+}

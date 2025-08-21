@@ -1,0 +1,8 @@
+[
+{
+  "directory": "/media/lenovo/Data/CLionProjects/ProgramLanguageInCpp/build",
+  "command": "/usr/bin/g++   -g -std=gnu++23 -o CMakeFiles/ProgramLanguageInCpp.dir/main.cpp.o -c /media/lenovo/Data/CLionProjects/ProgramLanguageInCpp/main.cpp",
+  "file": "/media/lenovo/Data/CLionProjects/ProgramLanguageInCpp/main.cpp",
+  "output": "CMakeFiles/ProgramLanguageInCpp.dir/main.cpp.o"
+}
+]

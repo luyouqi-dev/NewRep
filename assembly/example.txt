@@ -1,0 +1,119 @@
+class Math {
+	public let a: list<int>;
+	public constructor(this: Math) {
+		this.a = new list(1000000);
+	}
+	public function fib(this: Math, m: int) void {
+		this.a[0] = this.a[1] = 1;
+		for (let i = 2; i <= m; ++i)	
+			this.a[i] = this.a[i-1] + this.a[i-2];
+	}
+	public function get(this： Math, pos :int) int {
+		return this.a[pos];
+	}
+}
+
+function main() void {
+	let ma = new Math();
+	ma.fib(100);
+	let w = ma.get(12);
+}
+
+
+
+
+######################################################################################################ASM
+
+
+
+
+// 定义列表类（ID 4），包含容量和数据区
+SET_CLASS 4 2 0 0
+    0 0    // capacity字段（int）
+    1 0    // data起始偏移（动态长度）
+
+// 定义Math类(ID 2)，成员a为列表类型
+SET_CLASS 2 1 0 1
+    0 4    // 成员a在偏移0，类型为列表（类ID4）
+
+// 构造函数(函数ID 200)
+SET_FUNC 200 2 0 8
+    _psh 1000000    // 压入列表容量
+    _new 4          // 创建列表对象（类ID4）
+    _i_stor 0       // 存储到this.a（偏移0）
+    _ret            // 返回
+
+// fib方法(函数ID 201)
+SET_FUNC 201 2 2 30
+    // 初始化a[0] = 1
+    _i_load 0       // 加载this.a地址
+    _psh 0          // 索引0
+    _add            // 计算a[0]地址
+    _psh 1          
+    _i_stor         // 存储1到a[0]
+
+    // 初始化a[1] = 1
+    _i_load 0       
+    _psh 1          
+    _add            
+    _psh 1          
+    _i_stor         
+
+    // 循环i从2到m
+    _psh 2          // i = 2
+loop:
+    _i_load 1       // 加载参数m
+    _cbg            // 比较i > m
+    _jt end         // 若i > m，跳转到end
+
+    // 计算a[i] = a[i-1] + a[i-2]
+    _i_load 0       // this.a地址
+    _dup            // 复制i
+    _add            // 计算a[i]地址
+    _i_load 0       
+    _dup            
+    _psh 1          
+    _sub            // i-1
+    _add            // a[i-1]地址
+    _imm            // 加载a[i-1]值
+    _a_psh          
+    _i_load 0       
+    _dup            
+    _psh 2          
+    _sub            // i-2
+    _add            // a[i-2]地址
+    _imm            
+    _a_psh          
+    _add            // a[i-1] + a[i-2]
+    _i_stor         // 存储到a[i]
+
+    _psh 1          // i += 1
+    _add            
+    _jmp loop       // 跳回循环开始
+end:
+    _ret            // 返回
+
+// get方法（函数ID 202）
+SET_FUNC 202 2 1 8
+    _i_load 0       // this.a地址
+    _i_load 1       // 参数pos
+    _add            // 计算a[pos]地址
+    _imm            // 加载值到a寄存器
+    _a_psh          // 压入栈顶
+    _ret            // 返回
+
+// 主函数main（ID 100）
+SET_FUNC 100 -1 0 12
+    _psh 2          // Math类ID
+    _new            // 创建实例
+    _i_stor 0       // 存储到ma（局部变量0）
+
+    _i_load 0       // 加载ma地址
+    _psh 100        // 压入参数m=100
+    _call 201       // 调用fib方法
+
+    _i_load 0       
+    _psh 12         // 压入参数pos=12
+    _call 202       // 调用get方法
+    _i_stor 1       // 存储到w（局部变量1）
+    _ret            // 返回
