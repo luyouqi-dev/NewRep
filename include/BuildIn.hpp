@@ -46,6 +46,8 @@ enum Assembly {
 	_cls = 0xcef,  // comp less
 	_ceq = 0xefef1,// comp eq
 	_cne = 0xeef44,// comp not eq
+	_cebg = 0xccccef, // comp bigger or eq
+	_cels = 0xcefef,  // comp less or eq
 	
 	_jt = 0x1ffee, // 1
 	_jmp = 0x4f4fe3, // 1

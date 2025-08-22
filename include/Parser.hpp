@@ -72,7 +72,7 @@ public:
 		advance();
 		for (const auto& i : build_in_class) class_map[i] = make_class_id();
 		for (const auto& i : build_in_class) class_size_record[i] = 1;
-		scope.push_back(VarList());
+		scope.emplace_back();
 		for (const auto& i : build_in_class) add_to_global_scope(i, SK_CLASS);
 		main_parse();
 	}
@@ -695,7 +695,6 @@ AST *Parser::make_assign(AST* id) {
 
 AST *Parser::make_mem_malloc() {
 	consume("new", __func__ );
-	// return new MemoryMallocNode(abs_call());
 	AST* object_name = make_member_node();
 	if (match_data("(")) {
 		auto a = new MemoryMallocNode(make_func_call(object_name));

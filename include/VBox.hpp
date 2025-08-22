@@ -38,7 +38,7 @@ struct Function {
 struct Frame {
 	Function* func_point;
 	vector<int> body;
-	int *st, *sp, *sb, pc, a;
+	int *st, *sp, *sb, pc, a, *smid;
 	Frame();
 	Frame(Function*);
 	void psh(int);
@@ -56,16 +56,18 @@ int Frame::get() { if (pc > body.size()) return _lea; return body[pc++]; }
 Frame::Frame() {
 	func_point = nullptr;
 	st = new int[SS];
-	sp = st;
 	sb = st;
+	smid = sb + SS / 2;
+	sp = smid;
 	pc = 0;
 }
 
 Frame::Frame(Function *point) {
 	func_point = point;
 	st = new int[SS];
-	sp = st;
 	sb = st;
+	smid = sb + SS / 2;
+	sp = smid;
 	pc = 0;
 	body = point->codes;
 }
@@ -82,11 +84,11 @@ int Frame::pop() {
 }
 
 void Frame::sstor(int offset, int value) {
-	*(sb + offset) = value;
+	*(smid - offset) = value;
 }
 
 int Frame::get(int offset) {
-	return *(sb + offset);
+	return *(smid - offset);
 }
 
 class VirtualMachine {
@@ -174,11 +176,11 @@ void VirtualMachine::call_build_in(int bfid) {
 			int object_address = CUR_FRAME.pop();
 			int size = *(heap + object_address + 1);
 			if (size > 0) {
-					int top_value = *(heap + object_address + size);
-					CUR_FRAME.psh(top_value);
+				int top_value = *(heap + object_address + size);
+				CUR_FRAME.psh(top_value);
 			} else {
-					std::cerr << "STOP error: empty stack" << std::endl;
-					CUR_FRAME.psh(0); 
+				std::cerr << "STOP error: empty stack" << std::endl;
+				CUR_FRAME.psh(0);
 			}
 			break;
 		}
@@ -217,14 +219,18 @@ string VirtualMachine::get_string(int addr) {
 
 int VirtualMachine::store_string(std::string s) {
 	s += '\0';
-	int size = s.size();
-	int i = heap - htop;
-	for (int j = 0; j < s.size(); ++i) {
-		++htop;
-		*htop = s[j];
+	int req_size = s.size();
+	if (htop + req_size >= heap + HEAP_SIZE) {
+		std::cerr << "Heap overflow in string storage" << std::endl;
+		exit(EXIT_FAILURE);
 	}
-	return i;
+	int start_offset = htop - heap;
+	for (int j = 0; j < req_size; ++j) {
+		*htop++ = s[j];
+	}
+	return start_offset;
 }
+
 
 Object* VirtualMachine::find_class(int id) {
 	for (auto i : objects)
@@ -245,7 +251,7 @@ int VirtualMachine::heap_stor(int object_id) {
 	if (si == -1) si = CUR_FRAME.pop();
 	htop += si;
 	for (auto i = obj->member_map.begin(); i != obj->member_map.end(); ++i)
-		*(int*)((char*)tmp_top + i->first) = heap_stor(i->second);
+		*(tmp_top + i->first) = heap_stor(i->second);
 	size_rec[top] = si;
 	return top;
 }
@@ -373,6 +379,7 @@ int VirtualMachine::execute() {
 				char c = CUR_FRAME.pop();
 				do {
 					s += c;
+					c = CUR_FRAME.pop();
 				} while (c);
 				CUR_FRAME.psh(store_string(s));
 				break;
@@ -407,6 +414,18 @@ int VirtualMachine::execute() {
 			}
 			case _cne : {
 				CUR_FRAME.psh(CUR_FRAME.pop() != CUR_FRAME.pop());
+				break;
+			}
+			case _cebg : {
+				int b = CUR_FRAME.pop();
+				int a = CUR_FRAME.pop();
+				CUR_FRAME.psh(a >= b);
+				break;
+			}
+			case _cels : {
+				int b = CUR_FRAME.pop();
+				int a = CUR_FRAME.pop();
+				CUR_FRAME.psh(a <= b);
 				break;
 			}
 			case _jt : {

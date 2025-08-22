@@ -1063,7 +1063,7 @@ public:
 	stack<CScope> scopes;
 	unordered_map<string, ThreeCodeObject> object_rec; 
 	unordered_map<string, ThreeCodeFunction> func_rec;
-	int class_cnt, func_cnt;
+	int class_cnt, func_cnt_;
 	int make_class_id();
 	int make_func_id();
 	void load();
@@ -1073,9 +1073,35 @@ public:
 	Function visit_function(ThreeCodeFunction);
 	void make_goto(Function*, string);
 	void make_if(Function*, string);
+	void make_bin_op(Function*, OperatorCommand);
 	void make_call(Function*, string);
 	void setup_build_in();
 };
+
+void MainCompiler::make_bin_op(Function *fn, OperatorCommand op) {
+	// [vn = value1 op value2]
+	string oper = op.codes[3];
+	int asm_op = -1;
+	if (oper == "+") asm_op = _add;
+	else if (oper == "-") asm_op = _sub;
+	else if (oper == "*") asm_op = _mul;
+	else if (oper == "/") asm_op = _div;
+	else if (oper == "<<") asm_op = _left_mv;
+	else if (oper == ">>") asm_op = _right_mv;
+	else if (oper == "%") asm_op = _mod;
+	else if (oper == "or" || oper == "||" || oper == "|") asm_op = _or;
+	else if (oper == "and" || oper == "&&" || oper == "&") asm_op = _and;
+	else if (oper == "==") asm_op = _ceq;
+	else if (oper == ">") asm_op = _cbg;
+	else if (oper == "<") asm_op = _cls;
+	else if (oper == "!=") asm_op = _not;
+	else if (oper == ">=") asm_op = _cebg;
+	else if (oper == "<=") asm_op = _cels;
+	else {
+		printf("Unknown operator symbol %s\n", oper.c_str());
+		exit(-1);
+	}
+}
 
 void MainCompiler::setup_build_in() {
 	for (auto i : build_in_id_map) {
@@ -1138,7 +1164,7 @@ int MainCompiler::make_class_id() {
 }
 
 int MainCompiler::make_func_id() {
-	int current_id = func_cnt++;
+	int current_id = func_cnt_++;
 	if (
 		current_id != PRINT_ &&
 		current_id != INPUT_ &&
