@@ -143,7 +143,11 @@ void vm_test() {
 }
 
 int main(int argc, char **argv) {
-	file();
+	map<string, int> a;
+	a["hello"] = 0;
+	int& b = a["hello"];
+	a["hello"] = 21;
+	cout << b << endl;
 	return 0;
 }
 

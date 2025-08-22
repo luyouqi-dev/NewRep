@@ -327,10 +327,6 @@ int VirtualMachine::execute() {
 				CUR_FRAME.psh(a << b);
 				break;
 			}
-			case _system_call: {
-				int code = CUR_FRAME.get();
-				break;
-			}
 			case _right_mv : {
 				int b = CUR_FRAME.pop();
 				int a = CUR_FRAME.pop();
@@ -374,11 +370,10 @@ int VirtualMachine::execute() {
 			}
 			case _hsst : {
 				string s;
-				int c = CUR_FRAME.get();
-				while (c) {
+				char c = CUR_FRAME.pop();
+				do {
 					s += c;
-					c = CUR_FRAME.get();
-				}
+				} while (c);
 				CUR_FRAME.psh(store_string(s));
 				break;
 			}

@@ -1,3 +1,0 @@
-/media/lenovo/Data/CLionProjects/ProgramLanguageInCpp/build/CMakeFiles/ProgramLanguageInCpp.dir
-/media/lenovo/Data/CLionProjects/ProgramLanguageInCpp/build/CMakeFiles/edit_cache.dir
-/media/lenovo/Data/CLionProjects/ProgramLanguageInCpp/build/CMakeFiles/rebuild_cache.dir

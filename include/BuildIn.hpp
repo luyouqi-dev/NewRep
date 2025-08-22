@@ -49,7 +49,6 @@ enum Assembly {
 	
 	_jt = 0x1ffee, // 1
 	_jmp = 0x4f4fe3, // 1
-	_system_call = 0x7c00,
 	
 	_call = 0x88feabc, // 1
 	_scall = 0x98af,
@@ -58,18 +57,48 @@ enum Assembly {
 	
 };
 
-enum SysCall {
-	CallOpenFile = 0x9c00,
-	
+map<int, int> asm_value_size = {
+	{ _add,        0 },
+	{ _sub,        0 },
+	{ _mul,        0 },
+	{ _div,        0 },
+	{ _mod,        0 },
+	{ _pow,        0 },
+	{ _xor,        0 },
+	{ _left_mv,    0 },
+	{ _right_mv,   0 },
+	{ _dup,        0 },
+	{ _psh,        1 }, 
+	{ _pop,        0 },
+	{ _a_psh,      0 }, 
+	{ _a_pop,      0 },
+	{ _imm,        0 }, 
+	{ _i_load,     0 }, 
+	{ _i_stor,     0 }, 
+	{ _param,      1 },
+	{ _hsst,       0 },
+	{ _new,        0 },
+	{ _sdup,       0 },
+	{ _or,         0 },
+	{ _and,        0 },
+	{ _not,        0 },
+	{ _cbg,        0 }, 
+	{ _cls,        0 }, 
+	{ _ceq,        0 },
+	{ _cne,        0 },
+	{ _jt,         1 },
+	{ _jmp,        1 },
+	{ _call,       1 }, 
+	{ _scall,      0 },
+	{ _ret,        0 },
+	{ _lea,        0 },
 };
 
-enum Opera {
-	SET_MAIN, SET_CLASS, SET_FUNC
-};
+inline bool is_asm(int x) { return asm_value_size.find(x) != asm_value_size.end(); }
 
-enum FunctionType {
-	FT_USER_DEFINE, FT_LIB, FT_BUILD_IN
-};
+enum Opera { SET_MAIN, SET_CLASS, SET_FUNC };
+
+enum FunctionType { FT_USER_DEFINE, FT_LIB, FT_BUILD_IN };
 
 vector<string> build_in_function = {
 	"print",
@@ -83,7 +112,40 @@ vector<string> build_in_function = {
 	"top" /*stack.top*/,
 };
 
-vector<string> build_in_class = { "int", "double", "bool", "string", "list", "stack", "void", "char" };
+vector<string> build_in_class = { 
+	"int", 
+	"double", 
+	"bool",
+  "string", 
+	"list", 
+	"stack", 
+	"void", 
+	"char" 
+};
+
+unordered_map<string, vector<int>> build_in_id_map = {
+ //  name               id             ret(1)/lea(0)
+	{ "print",         {PRINT_,               0} },
+	{ "input",         {INPUT_,               1} },
+	{ "to_string", {TO_STRING_,               1} },
+	{ "to_int",   {TO_INTEGER_,               1} },
+	{ "append",         {LAPPEND,              0} },
+	{ "size",         {LSIZE,                 1} },
+	{ "pop",             {SPOP,               1} },
+	{ "push",            {SPSH,               0} },
+	{ "top",             {STOP,               1} },
+};
+
+unordered_map<string, int> build_in_cls_map = {
+	{"int",   BS_INT},
+	{"double", BS_DOUBLE},
+	{"bool",   BS_BOOL},
+	{"string", BS_STR},
+	{"list",  BS_LIST},
+	{"stack", BS_STACK},
+	{"void", BS_VOID},
+	{"char", BS_CHAR},
+};
 
 enum BuildInFunction {
 	PRINT_ = 0XEF4,
@@ -104,7 +166,8 @@ enum BuildInClass {
 	BS_DOUBLE = 0xcfed4, 
 	BS_BOOL = 0xcfed5, 
 	BS_LIST = 0xcfed6, 
-	BS_STACK = 0xcfed7
+	BS_STACK = 0xcfed7,
+	BS_VOID  = 0XCFED903
 };
 
 unordered_map<string, vector<int>> vm_build_in_fn_map = {

@@ -2,11 +2,10 @@
 #define C_PROGRAM_LANGUAGE_COMPILER_HPP
 #include "OplType.hpp"
 #include "color256.hpp"
+#include "BuildIn.hpp"
 #include <unordered_map>
 
-enum NameType {
-	NAME_ID, NAME_DIGIT, NAME_STRING
-};
+enum NameType { NAME_ID, NAME_DIGIT, NAME_STRING };
 
 struct Name {
 	NameType type;
@@ -985,12 +984,22 @@ Name *Compiler::visit_make_not_node(AST *a) {
 
 class ThreeCodeObject {
 public:
-	string name;
-	int id;
+	string name; int id;
 	ThreeCodeObject();
+	ThreeCodeObject(int);
+	ThreeCodeObject(string, int);
 	ThreeCodeObject(vector<OperatorCommand>);
 	vector<OperatorCommand> opcs;
 };
+
+ThreeCodeObject::ThreeCodeObject(int id) {
+	this->id = id;
+}
+
+ThreeCodeObject::ThreeCodeObject(string name, int id) {
+	this->name = name;
+	this->id = id;
+}
 
 ThreeCodeObject::ThreeCodeObject() {}
 
@@ -1003,9 +1012,20 @@ public:
 	string name;
 	int id;
 	ThreeCodeFunction();
+	ThreeCodeFunction(string, int);
+	ThreeCodeFunction(int);
 	ThreeCodeFunction(vector<OperatorCommand>);
 	vector<OperatorCommand> opcs;
 };
+
+ThreeCodeFunction::ThreeCodeFunction(string name, int id) {
+	this->name = name;
+	this->id = id;
+}
+
+ThreeCodeFunction::ThreeCodeFunction(int id) {
+	this->id = id;
+}
 
 ThreeCodeFunction::ThreeCodeFunction(vector<OperatorCommand> opcs) {
 	this->opcs = opcs;
@@ -1015,23 +1035,91 @@ ThreeCodeFunction::ThreeCodeFunction() {}
 
 struct CScope {
 	unordered_map<string, int> label_map;
+	unordered_map<int, string> unsolve_label_buffer;
+	int unsolve_label_cnt = 0;
 	unordered_map<string, int> var_record;
+	int record_label(string);
+	bool label_is_exist(string);
+	void solve_label(int, string);
 };
+
+void CScope::solve_label(int size, string name) {
+	label_map[name] = size;
+}
+
+bool CScope::label_is_exist(string name) {
+	return label_map.find(name) != label_map.end();
+}
+
+int CScope::record_label(string l) {
+	unsolve_label_buffer[--unsolve_label_cnt] = l;
+	return unsolve_label_cnt;
+}
 
 class MainCompiler {
 public:
 	MainCompiler(vector<OperatorCommand>);
 	vector<OperatorCommand> opcs;
-	OperatorCommand *current;
-	unordered_map<int, ThreeCodeObject> object_rec; 
-	unordered_map<int, ThreeCodeFunction> func_rec;
+	stack<CScope> scopes;
+	unordered_map<string, ThreeCodeObject> object_rec; 
+	unordered_map<string, ThreeCodeFunction> func_rec;
 	int class_cnt, func_cnt;
 	int make_class_id();
 	int make_func_id();
 	void load();
+	void crate();
+	void leave();
 	Object visit_objects(ThreeCodeObject);
 	Function visit_function(ThreeCodeFunction);
+	void make_goto(Function*, string);
+	void make_if(Function*, string);
+	void make_call(Function*, string);
+	void setup_build_in();
 };
+
+void MainCompiler::setup_build_in() {
+	for (auto i : build_in_id_map) {
+		string name = i.first;
+		int id = i.second[0];
+		string lea_ = i.second[1] ? OPER_RET : OPER_LEAVE;
+		func_rec[name] = ThreeCodeFunction(name, id);
+		func_rec[name].opcs.push_back(OperatorCommand("OperatorLanguageBuildInFunction", {lea_}));
+	}
+	for (auto i : build_in_cls_map) {
+		string name = i.first;
+		int id = i.second;
+		object_rec[name] = ThreeCodeObject(name, id);
+	}
+}
+
+inline void MainCompiler::crate() { scopes.push(CScope()); }
+
+inline void MainCompiler::leave() { scopes.pop(); }
+
+void MainCompiler::make_call(Function *fn, string name) {
+	auto func_id = func_rec.find(name);
+	if (func_id == func_rec.end()) 
+		err_out(COMPILE_TIME_ERROR, "function %s not found.", name.c_str());
+	fn->codes.push_back(_call);
+	fn->codes.push_back(func_id->second.id);
+}
+
+void MainCompiler::make_if(Function* fn, string label) {
+	fn->codes.push_back(_jt);
+	auto label_id = scopes.top().label_map.find(label);
+	if (label_id != scopes.top().label_map.end())
+		fn->codes.push_back(scopes.top().label_map[label]);
+	else 
+		fn->codes.push_back(scopes.top().record_label(label));
+}
+
+void MainCompiler::make_goto(Function* fn, string label) {
+	fn->codes.push_back(_jmp);
+	if (scopes.top().label_is_exist(label)) 
+		fn->codes.push_back(scopes.top().label_map[label]);
+	else  
+		fn->codes.push_back(scopes.top().record_label(label));
+}
 
 int MainCompiler::make_class_id() {
 	int current_id = class_cnt++;
@@ -1068,12 +1156,32 @@ int MainCompiler::make_func_id() {
 }
 
 Function MainCompiler::visit_function(ThreeCodeFunction func) {
+	crate();
 	Function result;
 	int pos = 0;
 	auto fopcs = func.opcs;
 	while (pos < fopcs.size()) {
-
+		string current_label = fopcs[pos].label_name;
+		scopes.top().solve_label(result.codes.size(), current_label);
 	}
+	int pos1 = 0;
+	while (pos1 < result.codes.size()) {
+		if (is_asm(result.codes[pos1])) {
+			int offset = 1;
+			if (asm_value_size[result.codes[pos1]]) 
+				offset = asm_value_size[result.codes[pos1]];
+			int i = asm_value_size[result.codes[pos1]];
+			if (i == _jmp || i == _jt) {
+				int label_id = result.codes[pos1 + 1];
+				if (label_id < 0) 
+					result.codes[pos1 + 1] = scopes.top().label_map[scopes.top().unsolve_label_buffer[label_id]];
+			}
+			pos += offset;
+		} else {
+			++pos1;
+		}
+	}
+	leave();
 	return result;
 }
 
@@ -1082,7 +1190,7 @@ Object MainCompiler::visit_objects(ThreeCodeObject obj) {
 	int pos = 0;
 	auto copcs = obj.opcs;
 	while (pos < copcs.size()) {
-
+		
 	}
 	return result;
 }
@@ -1097,9 +1205,9 @@ void MainCompiler::load() {
 			while (opcs[i].codes[0] != CLASS_END)
 				temp.push_back(opcs[i++]);
 			++i;
-			object_rec[obj_cnt] = ThreeCodeObject(temp);
-			object_rec[obj_cnt].id = obj_cnt;
-			object_rec[obj_cnt].name = name;
+			object_rec[name] = ThreeCodeObject(temp);
+			object_rec[name].id = obj_cnt;
+			object_rec[name].name = name;
 			++obj_cnt;
 		}
 		if (opcs[i].codes[0] == FUNC_BEG) {
@@ -1109,9 +1217,9 @@ void MainCompiler::load() {
 			while (opcs[i].codes[0] != CLASS_END)
 				temp.push_back(opcs[i++]);
 			++i;
-			func_rec[obj_cnt] = ThreeCodeFunction(temp);
-			func_rec[obj_cnt].id = func_cnt;
-			func_rec[obj_cnt].name = name;
+			func_rec[name] = ThreeCodeFunction(temp);
+			func_rec[name].id = func_cnt;
+			func_rec[name].name = name;
 			++func_cnt;
 		}
 	}
@@ -1119,6 +1227,8 @@ void MainCompiler::load() {
 
 MainCompiler::MainCompiler(vector<OperatorCommand> opcs) {
 	this->opcs = opcs;
+	crate();
+	setup_build_in();
 }
 
 #endif
