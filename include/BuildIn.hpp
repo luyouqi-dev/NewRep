@@ -57,7 +57,7 @@ enum Assembly {
 	
 };
 
-map<int, int> asm_value_size = {
+unordered_map<int, int> asm_value_size = {
 	{ _add,        0 },
 	{ _sub,        0 },
 	{ _mul,        0 },
@@ -123,6 +123,29 @@ vector<string> build_in_class = {
 	"char" 
 };
 
+enum BuildInFunction {
+	PRINT_ = 0XEF4,
+	INPUT_ = 0X1AC,
+	TO_STRING_ = 0XACE,
+	TO_INTEGER_ = 0XACEF4,
+	LSIZE  = 0X0EFC,
+	LAPPEND = 0X11FFEA,
+	SPOP  = 0X11001,
+	SPSH  = 0X001100,
+	STOP = 0X121212
+};
+
+enum BuildInClass {
+	BS_INT = 0xcfed1,
+	BS_STR = 0xcfed2,
+	BS_CHAR = 0xcfed3,
+	BS_DOUBLE = 0xcfed4,
+	BS_BOOL = 0xcfed5,
+	BS_LIST = 0xcfed6,
+	BS_STACK = 0xcfed7,
+	BS_VOID  = 0XCFED903
+};
+
 unordered_map<string, vector<int>> build_in_id_map = {
  //  name               id             ret(1)/lea(0)
 	{ "print",         {PRINT_,               0} },
@@ -147,28 +170,7 @@ unordered_map<string, int> build_in_cls_map = {
 	{"char", BS_CHAR},
 };
 
-enum BuildInFunction {
-	PRINT_ = 0XEF4,
-	INPUT_ = 0X1AC,
-	TO_STRING_ = 0XACE,
-	TO_INTEGER_ = 0XACEF4,
-	LSIZE  = 0X0EFC,
-	LAPPEND = 0X11FFEA,
-	SPOP  = 0X11001,
-	SPSH  = 0X001100,
-	STOP = 0X121212
-};
 
-enum BuildInClass {
-	BS_INT = 0xcfed1, 
-	BS_STR = 0xcfed2, 
-	BS_CHAR = 0xcfed3, 
-	BS_DOUBLE = 0xcfed4, 
-	BS_BOOL = 0xcfed5, 
-	BS_LIST = 0xcfed6, 
-	BS_STACK = 0xcfed7,
-	BS_VOID  = 0XCFED903
-};
 
 unordered_map<string, vector<int>> vm_build_in_fn_map = {
 	/*  {name,    {id,     parent_class, value_size, ret_type}}  */
