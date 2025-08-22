@@ -148,19 +148,25 @@ void VirtualMachine::call_build_in(int bfid) {
 			break;
 		}
 		case LAPPEND : {
+			int object_address = CUR_FRAME.pop();
+			int value = CUR_FRAME.pop();	
 			break;
 		}
 		case SPOP : {
+			int object_address = CUR_FRAME.pop();
 			break;
 		}
 		case SPSH : {
+			int object_address = CUR_FRAME.pop();
 			break;
 		}
 		case STOP  : {
+			int object_address = CUR_FRAME.pop();
 			break;
 		}
 		default: {
-		
+			cout << "Error: build-in function not found\n";
+			exit(-1);
 		}
 	}
 }
@@ -176,7 +182,7 @@ void VirtualMachine::setup_build_in() {
 	}
 	for (auto i : vm_build_in_class) {
 		auto bcl = new Object;
-		bcl->id = i.second[0];
+		bcl->id   = i.second[0];
 		bcl->size = i.second[1];
 		objects.push_back(bcl);
 	}

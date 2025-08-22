@@ -212,6 +212,8 @@ public:
 	int class_size, offset;
 	int member_offset;
 	string parent_name;
+	bool is_block  = false;
+	AST* block_size = nullptr;
 	AccessStatus as;
 	vector<AST*> children;
 	vector<string> parents;
@@ -345,10 +347,12 @@ public:
 
 class TypeNode : public AST {
 public:
-	TypeNode(Token name, vector<AST*> template_list) {
+	TypeNode(Token name, vector<AST*> template_list, bool is_block = false, AST* block_size = nullptr) {
 		type = AST_TYPE;
 		data = name;
 		children = template_list;
+		this->is_block = is_block;
+		this->block_size = block_size;
 	}
 };
 

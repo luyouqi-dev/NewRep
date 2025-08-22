@@ -233,6 +233,8 @@ AST* Parser::make_templates(Token id) {
 
 AST* Parser::make_type_node() {
 	auto root_type = *current;
+	bool is_block = false;
+	AST* block_size = nullptr;
 	advance();
 	vector<AST*> template_list;
 	if (match_data("<")) {
@@ -244,7 +246,13 @@ AST* Parser::make_type_node() {
 		}
 		consume(">", __func__ );
 	}
-	auto n = new TypeNode(root_type, template_list);
+	if (match_data("[")) {
+		is_block = true;
+		advance();
+		block_size = make_expr();
+		consume("]", __func__ );
+	}
+	auto n = new TypeNode(root_type, template_list, is_block, block_size);
 	check_type(n);
 	return n;
 }
@@ -687,7 +695,17 @@ AST *Parser::make_assign(AST* id) {
 
 AST *Parser::make_mem_malloc() {
 	consume("new", __func__ );
-	return new MemoryMallocNode(abs_call());
+	// return new MemoryMallocNode(abs_call());
+	AST* object_name = make_member_node();
+	if (match_data("(")) {
+		auto a = new MemoryMallocNode(make_func_call(object_name));
+		if (match_data("[")) {
+			cout << "need ';'\n";
+			exit(-1);
+		}
+		return a;
+	}
+	return new MemoryMallocNode(object_name);
 }
 
 AST *Parser::make_class() {

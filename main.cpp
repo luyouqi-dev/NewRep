@@ -46,16 +46,19 @@ void file() {
 	for (auto i : res) {
 		print_tree(i);
 	}
-	Compiler tac(res);
-	auto cmds = tac.get_compile_result().opcs;
-	printf("\nThreeCodes=======================================\n");
-	for (auto i : cmds) {
-		Color256output(i.label_name, 3, 12, 0);
-		printf(": ");
-		for (auto j : i.codes)
-			cout << j <<  " ";
-		cout << endl;
-	}
+	auto cmp = [&](){
+		Compiler tac(res);
+		auto cmds = tac.get_compile_result().opcs;
+		printf("\nThreeCodes=======================================\n");
+		for (auto i: cmds) {
+			Color256output(i.label_name, 3, 12, 0);
+			printf(": ");
+			for (auto j: i.codes)
+				cout << j << " ";
+			cout << endl;
+		}
+	};
+	cmp();
 #endif
 #ifdef __linux__
 	cout << "LINUX" << endl;

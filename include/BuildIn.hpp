@@ -104,11 +104,11 @@ unordered_map<string, vector<int>> vm_build_in_fn_map = {
 	{"input",     {INPUT_,      -1,        1,         _ret}},
 	{"to_string", {TO_STRING_,  -1,        1,         _ret}},
 	{"to_int",    {TO_INTEGER_, -1,        1,         _ret}},
-	{"size",      {LSIZE,       BS_LIST,   0,         _ret}},
-	{"pop",       {SPOP,        BS_STACK,  0,         _ret}},
-	{"push",      {SPSH,        BS_STACK,  1,         _lea}},
-	{"top",       {STOP,        BS_STACK,  0,         _ret}},
-	{"append",    {LAPPEND,     BS_LIST,   1,         _lea}}
+	{"size",      {LSIZE,       BS_LIST,   1,         _ret}},
+	{"pop",       {SPOP,        BS_STACK,  1,         _ret}},
+	{"push",      {SPSH,        BS_STACK,  2,         _lea}},
+	{"top",       {STOP,        BS_STACK,  1,         _ret}},
+	{"append",    {LAPPEND,     BS_LIST,   2,         _lea}}
 };
 
 unordered_map<string, vector<int>> vm_build_in_class = {
