@@ -1013,16 +1013,79 @@ ThreeCodeFunction::ThreeCodeFunction(vector<OperatorCommand> opcs) {
 
 ThreeCodeFunction::ThreeCodeFunction() {}
 
+struct CScope {
+	unordered_map<string, int> label_map;
+	unordered_map<string, int> var_record;
+};
+
 class MainCompiler {
 public:
 	MainCompiler(vector<OperatorCommand>);
 	vector<OperatorCommand> opcs;
 	OperatorCommand *current;
-	unordered_map<int, ThreeCodeObject> object_rec;
+	unordered_map<int, ThreeCodeObject> object_rec; 
 	unordered_map<int, ThreeCodeFunction> func_rec;
-	unordered_map<string, int> label_map;
+	int class_cnt, func_cnt;
+	int make_class_id();
+	int make_func_id();
 	void load();
+	Object visit_objects(ThreeCodeObject);
+	Function visit_function(ThreeCodeFunction);
 };
+
+int MainCompiler::make_class_id() {
+	int current_id = class_cnt++;
+	if (
+		current_id != BS_INT &&
+		current_id != BS_STR &&
+		current_id != BS_CHAR &&
+		current_id != BS_DOUBLE &&
+		current_id != BS_BOOL &&
+		current_id != BS_LIST &&
+		current_id != BS_STACK
+	) {
+		return current_id;
+	}
+	return make_class_id();
+}
+
+int MainCompiler::make_func_id() {
+	int current_id = func_cnt++;
+	if (
+		current_id != PRINT_ &&
+		current_id != INPUT_ &&
+		current_id != TO_STRING_ &&
+		current_id != TO_INTEGER_ &&
+		current_id != LSIZE &&
+		current_id != LAPPEND &&
+		current_id != SPOP &&
+		current_id != SPSH &&
+		current_id != STOP	
+	) {
+		return current_id;
+	}
+	return make_func_id();
+}
+
+Function MainCompiler::visit_function(ThreeCodeFunction func) {
+	Function result;
+	int pos = 0;
+	auto fopcs = func.opcs;
+	while (pos < fopcs.size()) {
+
+	}
+	return result;
+}
+
+Object MainCompiler::visit_objects(ThreeCodeObject obj) {
+	Object result;
+	int pos = 0;
+	auto copcs = obj.opcs;
+	while (pos < copcs.size()) {
+
+	}
+	return result;
+}
 
 void MainCompiler::load() {
 	int i = 0, obj_cnt = 0, func_cnt = 0;

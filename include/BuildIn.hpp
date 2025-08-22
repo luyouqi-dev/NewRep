@@ -11,6 +11,9 @@ using std::string;
 using std::vector;
 using std::unordered_map;
 
+constexpr int LIST_SIZE_OFFSET = 1;
+constexpr int STACK_TOP_OFFSET = 1;
+
 enum Assembly {
 	_add = 0x0a,
 	_sub = 0x0b,
@@ -95,11 +98,17 @@ enum BuildInFunction {
 };
 
 enum BuildInClass {
-	BS_INT, BS_STR, BS_CHAR, BS_DOUBLE, BS_BOOL, BS_LIST, BS_STACK
+	BS_INT = 0xcfed1, 
+	BS_STR = 0xcfed2, 
+	BS_CHAR = 0xcfed3, 
+	BS_DOUBLE = 0xcfed4, 
+	BS_BOOL = 0xcfed5, 
+	BS_LIST = 0xcfed6, 
+	BS_STACK = 0xcfed7
 };
 
 unordered_map<string, vector<int>> vm_build_in_fn_map = {
-	/*  {name,         {id,      parent_class, value_size, ret_type}}  */
+	/*  {name,    {id,     parent_class, value_size, ret_type}}  */
 	{"print",     {PRINT_,      -1,        1,         _lea}},
 	{"input",     {INPUT_,      -1,        1,         _ret}},
 	{"to_string", {TO_STRING_,  -1,        1,         _ret}},
@@ -112,7 +121,7 @@ unordered_map<string, vector<int>> vm_build_in_fn_map = {
 };
 
 unordered_map<string, vector<int>> vm_build_in_class = {
-	//  name           id       size (-1 = autoSize)
+//  name        id       size (-1 = autoSize)
 	{"int",    {BS_INT   ,  1}},
 	{"string", {BS_STR   ,  1}},
 	{"char",   {BS_CHAR  ,  1}},
