@@ -1,3 +1,13 @@
+class Test {
+	public let li: list<int>;
+	constructor(size: int) void {
+		this.li = new list<int>(size);
+	}
+	public function test() void {
+		let w = this.li[1];
+	}
+}
+
 function main() int {
 	let w: list<int> = new list<int>(120);
     return 0;

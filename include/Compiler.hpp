@@ -283,6 +283,7 @@ PName Compiler::visit_load_library_node(AST* a) {
 	// using "name";
 	Compiler compiler(a->children);
 	auto temp = compiler.opcs;
+	RENUL;
 }
 
 void Compiler::init() {
@@ -547,7 +548,13 @@ PName Compiler::visit_member_node(AST* a) {
 		auto memb = a->children[1];
 		auto left = visit_member_node(base)->name;
 		string t = a->parent_name;
-		string d = memb->data.data;
+		string d;
+		if (memb->type == AST_ID) {
+			d = memb->data.data;
+		} else {
+			auto list_name = memb->children[0];
+			d = list_name->data.data;
+		}
 		auto offset = to_string(objects[t][d]);
 		auto tmpv = make_var_name();
 		opcs.push_back(OperatorCommand(make_label(), {tmpv, "=", left, "+", offset}));
@@ -1083,7 +1090,7 @@ public:
 	stack<CScope> scopes;
 	unordered_map<string, ThreeCodeObject> object_rec; 
 	unordered_map<string, ThreeCodeFunction> func_rec;
-	int class_cnt, func_cnt_;
+	int class_cnt{}, func_cnt_{};
 	int make_class_id();
 	int make_func_id();
 	void load();

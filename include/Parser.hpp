@@ -280,6 +280,18 @@ void Parser::advance() {
 	}
 }
 
+string get_string(AST* a) {
+	if (a->type == AST_ID)
+		return a->data.data;
+	if (a->type == AST_GET_VALUE)
+		return get_string(a->children[0]);
+	if (a->type == AST_MEMBER) {
+		auto base = a->children[0];
+		auto member = a->children[1];
+		return get_string(base);
+	}
+}
+
 AST* Parser::make_member_node() {
 	AST* base = make_id_atom();
 	string type;
@@ -297,7 +309,14 @@ AST* Parser::make_member_node() {
 			return member;
 		base = new MemberNode(base, member);
 		if (member->children.size() > 0 && member->type == AST_GET_VALUE) {
-			base->parent_name = get_type(base->children[0]->data.data).templateType[0].rootType;
+			string data_t;
+			if (base->type != AST_MEMBER) {
+				data_t = base->children[0]->data.data;
+				base->parent_name = get_type(data_t).templateType[0].rootType;
+			}
+			else {
+				base->parent_name = type;
+			}
 		} else {
 			base->parent_name = type;
 		}
@@ -732,12 +751,13 @@ AST *Parser::make_class() {
 	AST* constructor = {};
 	vector<AST*>  v;
 	vector<AST*> temps;
-	if (match_data("class"))
-		advance();
-	if (!match_type(TT_ID)) {
+	if (match_data("class")) advance();
+	if (!match_type(TT_ID))
 		err_out(PARSE_TIME_ERROR, "want a ID meet '%s', at lin %d, col %d, pos %d", current->data.c_str(), lin, col, pos);
-	}
 	name = *current;
+	IdTypeNode itn;
+	itn.rootType = name.data;
+	add_var("this", itn);
 	ptcr[name.data] = ParseTimeClassRecord();
 	id_map[name.data] = CLASS_ID;
 	add(name.data, SK_CLASS);
