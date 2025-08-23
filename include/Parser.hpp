@@ -283,9 +283,8 @@ void Parser::advance() {
 AST* Parser::make_member_node() {
 	AST* base = make_id_atom();
 	string type;
-	if (base->type == AST_TYPE) {
+	if (base->type == AST_TYPE)
 		return base;
-	}
 	if (base->children.size() > 0 && base->type == AST_GET_VALUE) {
 		if (base->type != AST_ID) type = get_type(base->children[0]->data.data).templateType[0].rootType;
 		else type = get_type(base->data.data).templateType[0].rootType;

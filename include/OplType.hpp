@@ -368,11 +368,9 @@ public:
 IdTypeNode make_id_type_node(AST* node) {
 	IdTypeNode itn;
 	itn.rootType = node->data.data;
-	if (!node->children.empty()) {
-		for (auto i : node->children) {
+	if (!node->children.empty())
+		for (auto i : node->children)
 			itn.templateType.push_back(make_id_type_node(i));
-		}
-	}
 	print_type_node(itn);
 	return itn;
 }
@@ -388,7 +386,7 @@ public:
 
 class ClassBuildNode : public AST {
 public:
-	ClassBuildNode(AST* name, vector<AST*> args) {
+	ClassBuildNode(AST* name, const vector<AST*>& args) {
 		type = AST_CONSTRUCTOR_CALL;
 		children.push_back(name);
 		for (auto i : args)

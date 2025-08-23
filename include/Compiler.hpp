@@ -54,6 +54,7 @@ CONS OPER_LD_RET = "LOAD_RETURN_VALUE";
 CONS OPER_MOD  = "MOD";
 CONS OPER_IF   = "IF";
 CONS OPER_GOTO = "GOTO";
+CONS OPER_LOAD_VAL_FRON_ADDR = "LOAD_VALUE_";
 CONS OPER_CALL = "CALL";
 CONS OPER_VAR  = "VAR_DEF";
 CONS OPER_LIST_VALUE_ASSI = "VAR_LIST_VALUE_ASSIGN"; // OLVA <listName> (offset) <value/data>
@@ -1100,10 +1101,18 @@ public:
 	void save_value(Function*, string, string);
 	void make_ret(Function*, OperatorCommand);
 	void make_load(Function*, OperatorCommand);
+	void make_load_ret_val(Function*, OperatorCommand);
 	void setup_build_in();
 	void compile_all();
 	void make_atom(Function*, OperatorCommand);
 };
+
+void MainCompiler::make_load_ret_val(Function *fn, OperatorCommand op) {
+	string name = op.codes[1];
+	fn->codes.push_back(_psh);
+	fn->codes.push_back(scopes.top().get_id(name));
+	fn->codes.push_back(_i_load);
+}
 
 void MainCompiler::make_load(Function *fn, OperatorCommand op) {
 	string var_name = op.codes[1];
@@ -1165,6 +1174,13 @@ void MainCompiler::make_self_calc(Function *fn, OperatorCommand op) {
 }
 
 void MainCompiler::make_bin_op(Function *fn, OperatorCommand op) {
+	if (op.codes.size() == 3) {
+		make_value(fn, op.codes[2]);
+		fn->codes.push_back(_psh);
+		fn->codes.push_back(scopes.top().get_id(op.codes[0]));
+		fn->codes.push_back(_i_stor);
+		return;
+	}
 	string oper = op.codes[3];
 	int asm_op = -1;
 	if (oper == "+") asm_op = _add;
@@ -1373,6 +1389,9 @@ void MainCompiler::make_atom(Function *fn, OperatorCommand op) {
 		return;
 	} else if (cmd == OPER_LOAD || cmd == OPER_VAR_ASSI) {
 		make_load(fn, op);
+		return;
+	} else if (cmd == OPER_GET_RET_VAL) {
+		make_load_ret_val(fn, op);
 		return;
 	} else {
 		if (op.codes[1] == "=") {
