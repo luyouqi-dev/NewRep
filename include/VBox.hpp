@@ -360,11 +360,14 @@ int VirtualMachine::execute() {
 				break;
 			}
 			case _i_load : {
+				// value = stack.top
 				CUR_FRAME.psh(CUR_FRAME.get(CUR_FRAME.pop()));
 				break;
 			}
 			case _i_stor : {
-				CUR_FRAME.sstor(CUR_FRAME.pop(), CUR_FRAME.pop());
+				int offset = CUR_FRAME.pop();
+				int value  = CUR_FRAME.pop();
+				CUR_FRAME.sstor(offset, value);
 				break;
 			}
 			case _param : {

@@ -2,6 +2,7 @@
 #define C_PROGRAM_LANGUAGE_COMPILER_HPP
 #include "OplType.hpp"
 #include "color256.hpp"
+#include "Tools.hpp"
 #include "BuildIn.hpp"
 #include <unordered_map>
 
@@ -36,7 +37,6 @@ CONS OPER_SPACE = "NEW_SPACE";
 CONS FUNC_BEG  = "FUNC_BEGIN";
 CONS OPER_GET_RET_VAL = "GET_RETURN_VALUE";
 CONS FUNC_END  = "FUNC_END";
-CONS OPER_AND  = "AND";
 CONS OPER_NOT  = "NOT";
 CONS OPER_SUB  = "SUB";
 CONS OPER_TYPE_CAST = "TYPE_CAST";
@@ -1036,12 +1036,21 @@ ThreeCodeFunction::ThreeCodeFunction() {}
 struct CScope {
 	unordered_map<string, int> label_map;
 	unordered_map<int, string> unsolve_label_buffer;
-	int unsolve_label_cnt = 0;
+	int unsolve_label_cnt = 0, var_cnt = 0;
 	unordered_map<string, int> var_record;
 	int record_label(string);
 	bool label_is_exist(string);
 	void solve_label(int, string);
+	int get_id(string);
 };
+
+int CScope::get_id(string s) {
+	auto v = var_record.find(s);
+	if (v != var_record.end())
+		return v->second;
+	var_record[s] = ++var_cnt;
+	return var_record[s];
+}
 
 void CScope::solve_label(int size, string name) {
 	label_map[name] = size;
@@ -1075,11 +1084,54 @@ public:
 	void make_if(Function*, string);
 	void make_bin_op(Function*, OperatorCommand);
 	void make_call(Function*, string);
+	void make_self_calc(Function*, OperatorCommand);
+	void make_value(Function*, string);
+	void load_value(Function*, string);
+	void save_value(Function*, string, string);
 	void setup_build_in();
 };
 
+void MainCompiler::load_value(Function *fn, std::string name) {
+	fn->codes.push_back(_psh);
+	fn->codes.push_back(scopes.top().get_id(name));
+	fn->codes.push_back(_i_load);
+}
+
+void MainCompiler::save_value(Function *fn, std::string name, string value) {
+	make_value(fn, value);
+	fn->codes.push_back(_psh);
+	fn->codes.push_back(scopes.top().get_id(name));
+	fn->codes.push_back(_i_stor);
+}
+
+void MainCompiler::make_value(Function *fn, std::string value) {
+	if (isdigit(value)) {
+		fn->codes.push_back(_psh);
+		fn->codes.push_back(stoi(value));
+		return;
+	}
+	fn->codes.push_back(_psh);
+	fn->codes.push_back(scopes.top().get_id(value));
+	fn->codes.push_back(_i_load);
+}
+
+void MainCompiler::make_self_calc(Function *fn, OperatorCommand op) {
+	int oper = -1;
+	string sop = op.codes[0];
+	if (sop == OPER_ADD) oper = _add;
+	else if (sop == OPER_SUB) oper = _sub;
+	else if (sop == OPER_DIV) oper = _div;
+	else if (sop == OPER_MUL) oper = _mul;
+	else if (sop == OPER_MOD) oper = _mod;
+	else err_out(COMPILE_TIME_ERROR, "name %s not found", sop.c_str());
+	string name = op.codes[1];
+	string data = op.codes[2];
+	make_value(fn, data);
+	load_value(fn, name);
+	fn->codes.push_back(oper);
+}
+
 void MainCompiler::make_bin_op(Function *fn, OperatorCommand op) {
-	// [vn = value1 op value2]
 	string oper = op.codes[3];
 	int asm_op = -1;
 	if (oper == "+") asm_op = _add;
@@ -1101,6 +1153,14 @@ void MainCompiler::make_bin_op(Function *fn, OperatorCommand op) {
 		printf("Unknown operator symbol %s\n", oper.c_str());
 		exit(-1);
 	}
+	string value1 = op.codes[2];
+	string value2 = op.codes[4];
+	make_value(fn, value1);
+	make_value(fn, value2);
+	fn->codes.push_back(asm_op);
+	fn->codes.push_back(_psh);
+	fn->codes.push_back(scopes.top().get_id(op.codes[0]));
+	fn->codes.push_back(_i_stor);
 }
 
 void MainCompiler::setup_build_in() {
@@ -1175,9 +1235,7 @@ int MainCompiler::make_func_id() {
 		current_id != SPOP &&
 		current_id != SPSH &&
 		current_id != STOP	
-	) {
-		return current_id;
-	}
+	) { return current_id; }
 	return make_func_id();
 }
 

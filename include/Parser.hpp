@@ -1046,15 +1046,13 @@ AST *Parser::make_load_library() {
 }
 
 Token Parser::want_get(string s) {
-	if (match_type(s))
-		return *current;
+	if (match_type(s)) return *current;
 	err_out(PARSE_TIME_ERROR, "want '%s' get '%s', at lin %d, col %d, pos %d",s.c_str() , current->data.c_str(), lin, col, pos);
 	return Token();
 }
 
 AST *Parser::make_load_module_node() {
-	if (match_data("module"))
-		advance();
+	if (match_data("module")) advance();
 	auto name = make_member_node();
 	string name_str = name->data.data;
 	add(name_str, SK_MODULE);
@@ -1114,24 +1112,20 @@ void Parser::check_type(AST *a) {
 
 bool Parser::is_type(AST *a) {
 	string type = a->type;
-	if (type != AST_CLASS && type != AST_TYPE) {
+	if (type != AST_CLASS && type != AST_TYPE)
 		return false;
-	}
 	if (type == AST_CLASS) {
-		if (class_map[a->data.data] == 0) {
+		if (class_map[a->data.data] == 0)
 			return false;
-		}
 		return true;
 	}
 	if (type == AST_TYPE) {
 		string root_type = a->data.data;
-		if (class_map[root_type] == 0) {
+		if (class_map[root_type] == 0)
 			return false;
-		}
-		if (!a->children.empty()) {
+		if (!a->children.empty())
 			for (auto i : a->children)
 				check_type(i);
-		}
 		return true;
 	}
 	return false;
