@@ -354,6 +354,15 @@ public:
 		this->is_block = is_block;
 		this->block_size = block_size;
 	}
+	TypeNode(Token name, bool is_block = false, AST* block_size = nullptr) {
+		type = AST_TYPE;
+		data = name;
+		this->is_block = is_block;
+		this->block_size = block_size;
+	}
+	TypeNode() {
+	
+	}
 };
 
 IdTypeNode make_id_type_node(AST* node) {

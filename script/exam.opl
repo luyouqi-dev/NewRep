@@ -1,14 +1,4 @@
-class Maths {
-    public let a: int = 0;
-    constructor(this: Maths) void {
-    	this.a = 0;
-    }
-    public function fib(a: int) list<int> {
-    	return new list<int>();
-    }
-}
-
 function main() int {
-    
+    let a: int[12] = new int[2];
     return 0;
 }

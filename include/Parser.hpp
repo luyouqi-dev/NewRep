@@ -283,12 +283,19 @@ void Parser::advance() {
 AST* Parser::make_member_node() {
 	AST* base = make_id_atom();
 	string type;
-	if (base->children.size() > 0 && base->type == AST_GET_VALUE)
-		type = get_type(base->children[0]->data.data).templateType[0].rootType;
+	if (base->type == AST_TYPE) {
+		return base;
+	}
+	if (base->children.size() > 0 && base->type == AST_GET_VALUE) {
+		if (base->type != AST_ID) type = get_type(base->children[0]->data.data).templateType[0].rootType;
+		else type = get_type(base->data.data).templateType[0].rootType;
+	}
 	else type = get_type(base->data.data).rootType;
 	while (current && match_data(".")) {
 		consume(".", __func__ );
 		AST* member = make_id_atom();
+		if (member->type == AST_TYPE)
+			return member;
 		base = new MemberNode(base, member);
 		if (member->children.size() > 0 && member->type == AST_GET_VALUE) {
 			base->parent_name = get_type(base->children[0]->data.data).templateType[0].rootType;
@@ -303,9 +310,8 @@ AST* Parser::make_member_node() {
 
 
 void Parser::consume(std::string s, string call_id) {
-	if (!current) {
+	if (!current)
 		err_out(PARSE_TIME_ERROR, "Unexpected EOF in lin %d, col %d, pos %d", lin, col, pos);
-	}
 	if (current->data == s) { advance(); return; }
 	err_out(PARSE_TIME_ERROR, "want '%s', meet '%s', at lin %d, col %d, pos %d", s.c_str(), current->data.c_str(), lin, col, pos);
 }
@@ -333,12 +339,22 @@ AST *Parser::make_id_atom() {
 	AST* idp = new IdNode(*current);
 	advance();
 	auto nxt = _tokens[pos + 1];
-	if (match_data("<") && class_map[nxt.data]) {
+	bool is_t = class_map.find(idp->data.data) != class_map.end();
+	if (is_t && match_data("<") && class_map[nxt.data]) {
 		auto temp = make_templates();
 		idp->children = temp;
 	}
-	while (match_data("["))
-		idp = make_get_value_node(idp);
+	if (!is_t) {
+		while (match_data("["))
+			idp = make_get_value_node(idp);
+	} else {
+		if (match_data("[")) {
+			auto si = make_expr();
+			consume("]", __func__ );
+			return new TypeNode(idp->data, true, si);
+		}
+		return new TypeNode(idp->data);
+	}
 	return idp;
 }
 
@@ -379,7 +395,9 @@ AST *Parser::atom() {
 		auto id = make_member_node();
 		return make_dec_node( id);
 	} if (match_type(TT_KEY)) {
-		if (match_data("new")) return make_mem_malloc();
+		if (match_data("new")) {
+			return make_mem_malloc();
+		}
 		else {
 			err_out(PARSE_TIME_ERROR, "Key '%s' not supposed, at lin %s, col %d, pos %d", current->data.c_str(), lin, col, pos);
 		}
@@ -695,8 +713,8 @@ AST *Parser::make_assign(AST* id) {
 
 AST *Parser::make_mem_malloc() {
 	consume("new", __func__ );
-	AST* object_name = make_member_node();
-	if (match_data("(")) {
+	AST* object_name = make_type_node();
+	if (match_data("(") && !object_name->is_block) {
 		auto a = new MemoryMallocNode(make_func_call(object_name));
 		if (match_data("[")) {
 			cout << "need ';'\n";

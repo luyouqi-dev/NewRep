@@ -39,6 +39,7 @@ CONS CLASS_END = "CLASS_END";
 CONS CLASS_BEG = "CLASS_BEGIN";
 CONS OPER_NOP  = "NOP";
 CONS OPER_SPACE = "NEW_SPACE";
+CONS OPER_OBJECT_BLOCK = "NEW_BLOCK";
 CONS FUNC_BEG  = "FUNC_BEGIN";
 CONS OPER_GET_RET_VAL = "GET_RETURN_VALUE";
 CONS FUNC_END  = "FUNC_END";
@@ -706,10 +707,20 @@ PName Compiler::visit_self_mod_node(AST* a) {
 PName Compiler::visit_mem_malloc_node(AST* a) {
 	normal_debug();
 	if (!a) RENUL;
-	string name = make_this_name(a->data.data);
-	string ret_name = visit_call_node(a->children[0])->name;
-	opcs.push_back(OperatorCommand(make_label(), {name, "=", ret_name}));
-	return new Name(name);
+	if (!a->children[0]->is_block) {
+		string name = make_this_name(a->data.data);
+		string ret_name = visit_call_node(a->children[0])->name;
+		opcs.push_back(OperatorCommand(make_label(), {name, "=", ret_name}));
+		return new Name(name);
+	} else {
+		// NEW_BLOCK <name> <size>
+		string name = make_var_name();
+		string size = visit_bin_op_node(a->children[0]->block_size)->name;
+		opcs.push_back(OperatorCommand(make_label(), {OPER_OBJECT_BLOCK, name, size}));
+		return new Name(name);
+	}
+	cout << "eRROR\n";
+	exit(-1);
 }
 
 PName Compiler::visit_ret_node(AST* a) {

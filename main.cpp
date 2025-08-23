@@ -31,7 +31,7 @@ void file() {
 	string default_file = R"(D:\CLionProjects\ProgramLanguageInCpp\script\exam.opl)";
 	string file1 = R"(D:\CLionProjects\ProgramLanguageInCpp\script\test1.opl)";
 	string file2 = R"(D:\CLionProjects\ProgramLanguageInCpp\script\test2.opl)";
-	string data = read_file(file1);
+	string data = read_file(default_file);
 	Lexer lexer(data);
 	Parser parser(lexer.tokens);
 	auto res = parser.result.ast;
@@ -143,11 +143,7 @@ void vm_test() {
 }
 
 int main(int argc, char **argv) {
-	map<string, int> a;
-	a["hello"] = 0;
-	int& b = a["hello"];
-	a["hello"] = 21;
-	cout << b << endl;
+	file();
 	return 0;
 }
 
