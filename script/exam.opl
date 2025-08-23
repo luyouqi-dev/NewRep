@@ -1,14 +1,27 @@
-class Test {
-	public let li: list<int>;
+class FibNumber {
+	public let number: list<int>;
 	constructor(size: int) void {
-		this.li = new list<int>(size);
+		this.number = new list<int>(size);
 	}
-	public function test() void {
-		let w = this.li[1];
+	public function build(n: int) void {
+		this.number[0] = 1;
+		this.number[1] = 1;
+		if (n > this.number.size()) {
+			print('number is too big!');
+		} else {
+			for (let i = 2; i <= n; ++i)
+				this.number[i] = this.number[i-1] + this.number[i-2];
+		}
+	}
+
+	public function build_d(n: int) int {
+		if (n == 0 || n == 1) return 1;
+		return this.build_d(n-1) + this.build_d(n-2);
 	}
 }
 
-function main() int {
-	let w: list<int> = new list<int>(120);
-    return 0;
+function main() void {
+	let a: FibNumber = new FibNumber(1024);
+	let c: int = a.build_d(12);
+	a.build(12);
 }

@@ -507,9 +507,10 @@ PName Compiler::visit_pos_value(AST* a) {
 	normal_debug();
 	string lis_name = visit_member_node(a->children[0])->name;
 	string value    = visit_bin_op_node(a->children[1])->name;
-	string vn       = make_var_name();
-	opcs.push_back(OperatorCommand(make_label(), {vn, "=", lis_name, "+", value}));
-	opcs.push_back({make_label(), {OPER_LOAD, vn, lis_name, value}});
+	string addr       = make_var_name();
+	opcs.push_back(OperatorCommand(make_label(), {addr, "=", lis_name, "+", value}));
+	string vn = make_var_name();
+	opcs.push_back(OperatorCommand(make_label(), {OPER_LOAD, vn, addr}));
 	return new Name(vn);
 }
 
@@ -551,9 +552,18 @@ PName Compiler::visit_member_node(AST* a) {
 		string d;
 		if (memb->type == AST_ID) {
 			d = memb->data.data;
-		} else {
+		} else if (memb->type == AST_GET_VALUE) {
 			auto list_name = memb->children[0];
 			d = list_name->data.data;
+			auto offset = to_string(objects[t][d]);
+			string new_list_name = make_var_name();
+			opcs.push_back(OperatorCommand(make_label(), {new_list_name, "=", left, "+", offset}));
+			string value    = visit_bin_op_node(a->children[1])->name;
+			string addr     = make_var_name();
+			opcs.push_back(OperatorCommand(make_label(), {addr, "=", new_list_name, "+", value}));
+			string vn = make_var_name();
+			opcs.push_back(OperatorCommand(make_label(), {OPER_LOAD, vn, addr}));
+			return new Name(vn);
 		}
 		auto offset = to_string(objects[t][d]);
 		auto tmpv = make_var_name();
