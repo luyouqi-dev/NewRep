@@ -1,4 +1,4 @@
 function main() int {
-    let a: int[12] = new int[2];
+	let w: list<int> = new list<int>();
     return 0;
 }

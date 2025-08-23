@@ -541,19 +541,22 @@ PName Compiler::visit_member_node(AST* a) {
 		opcs.push_back(OperatorCommand(make_label(), {OPER_GET_RET_VAL, tvn}));
 		return new Name(tvn);
 	}
-  if (match_type(a, AST_MEMBER)) {
-	  auto base = a->children[0];
-	  auto memb = a->children[1];
-	  auto left = visit_member_node(base)->name;
-	  string t = a->parent_name;
-	  string d = memb->data.data;
-	  auto offset = to_string(objects[t][d]);
-	  auto tmpv = make_var_name();
-	  opcs.push_back(OperatorCommand(make_label(), {tmpv, "=", left, "+", offset}));
-	  return new Name(tmpv);
-  }
-  err_out(COMPILE_TIME_ERROR, "unknow type %s", a->type.c_str());
-  RENUL;
+	if (match_type(a, AST_MEMBER)) {
+		auto base = a->children[0];
+		auto memb = a->children[1];
+		auto left = visit_member_node(base)->name;
+		string t = a->parent_name;
+		string d = memb->data.data;
+		auto offset = to_string(objects[t][d]);
+		auto tmpv = make_var_name();
+		opcs.push_back(OperatorCommand(make_label(), {tmpv, "=", left, "+", offset}));
+		return new Name(tmpv);
+	}
+	if (match_type(a, AST_TYPE)) {
+		return new Name(a->data.data);
+	}
+	err_out(COMPILE_TIME_ERROR, "unknow type %s", a->type.c_str());
+	RENUL;
 }
 
 string Compiler::make_label() { normal_debug(); return "l" + to_string(++label_cnt); }
