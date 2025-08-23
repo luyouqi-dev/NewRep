@@ -57,11 +57,13 @@ enum Assembly {
 	_ret   = 0x8899fe,
 	_lea = 0x8844fed,
 	
+	_nop = 0x0000
 };
 
 unordered_map<int, int> asm_value_size = {
 	{ _add,        0 },
 	{ _sub,        0 },
+	{ _nop,        0 },
 	{ _mul,        0 },
 	{ _div,        0 },
 	{ _mod,        0 },

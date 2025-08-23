@@ -360,7 +360,6 @@ int VirtualMachine::execute() {
 				break;
 			}
 			case _i_load : {
-				// value = stack.top
 				CUR_FRAME.psh(CUR_FRAME.get(CUR_FRAME.pop()));
 				break;
 			}
@@ -437,6 +436,9 @@ int VirtualMachine::execute() {
 			}
 			case _jmp : {
 				CUR_FRAME.pc = CUR_FRAME.get();
+				break;
+			}
+			case _nop: {
 				break;
 			}
 			case _call : {

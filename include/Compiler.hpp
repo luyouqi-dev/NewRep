@@ -13,23 +13,28 @@ struct Name {
 	string label, name;
 	string class_name;
 	int offset;
-	Name() { type = NAME_ID; offset = -1; }
-	Name(string name) {
-		type = NAME_ID;
-		offset = -1;
-		this->name = name;
-	}
-	Name(string label, string name) {
-		type = NAME_ID;
-		offset = -1;
-		this->label = label;
-		this->name = name;
-	}
+	Name();
+	Name(string);
+	Name(string, string);
 };
+
+Name::Name()  { type = NAME_ID; offset = -1; }
+
+Name::Name(std::string name)  {
+	type = NAME_ID;
+	offset = -1;
+	this->name = name;
+}
+
+Name::Name(std::string label, std::string name)  {
+	type = NAME_ID;
+	offset = -1;
+	this->label = label;
+	this->name = name;
+}
 
 #define CONS const string
 CONS OPER_ADD  = "ADD";
-CONS OPER_OR   = "OR";
 CONS CLASS_END = "CLASS_END";
 CONS CLASS_BEG = "CLASS_BEGIN";
 CONS OPER_NOP  = "NOP";
@@ -41,24 +46,19 @@ CONS OPER_NOT  = "NOT";
 CONS OPER_SUB  = "SUB";
 CONS OPER_TYPE_CAST = "TYPE_CAST";
 CONS OPER_LOAD_LIB  = "LOAD_LIBRARY";
-CONS OPER_SET  = "SET";
 CONS OPER_MUL  = "MUL";
 CONS OPER_DIV  = "DIV";
-CONS OPER_ALLOC= "ALLOC";
 CONS OPER_LEAVE = "LEAVE";
 CONS OPER_LD_RET = "LOAD_RETURN_VALUE";
 CONS OPER_MOD  = "MOD";
 CONS OPER_IF   = "IF";
 CONS OPER_GOTO = "GOTO";
 CONS OPER_CALL = "CALL";
-CONS OPER_CAST = "CAST";
 CONS OPER_VAR  = "VAR_DEF";
-CONS OPER_ASSI = "VAR_ASSIGN";
+CONS OPER_LIST_VALUE_ASSI = "VAR_LIST_VALUE_ASSIGN"; // OLVA <listName> (offset) <value/data>
+CONS OPER_VAR_ASSI  = "VAR_ASSI"; // OVA <varName> <data/varName>
 CONS OPER_LIST = "NEW_LIST";
-CONS OPER_OFFSET = "OFFSET";
-CONS OPER_LOAD = "LOAD";
-CONS OPER_NEW  = "NEW";
-CONS OPER_DEL  = "DEL";
+CONS OPER_LOAD = "LOAD"; // LOAD var_name value
 CONS OPER_RET  = "RET";
 CONS OPER_PARAM = "PARAM";
 
@@ -518,7 +518,7 @@ PName Compiler::visit_list_node(AST* a) {
 		values.push_back(visit_bin_op_node(i)->name);
 	opcs.push_back(OperatorCommand(make_label(), {OPER_LIST, vn, to_string(values.size())}));
 	for (int i = 0; i < values.size(); ++i)
-		opcs.push_back(OperatorCommand(make_label(), {OPER_ASSI, vn, to_string(i), values[i]}));
+		opcs.push_back(OperatorCommand(make_label(), {OPER_LIST_VALUE_ASSI, vn, to_string(i), values[i]}));
 	return new Name(vn);
 }
 
@@ -784,7 +784,7 @@ PName Compiler::visit_var_assign_node(AST* a) {
 	}
 	string vn = visit_member_node(a->children[0])->name;
 	string data = visit_bin_op_node(a->children[1])->name;
-	opcs.push_back(OperatorCommand(make_label(), {OPER_ASSI, vn, data}));
+	opcs.push_back(OperatorCommand(make_label(), {OPER_VAR_ASSI, vn, data}));
 	return new Name(vn);
 }
 
@@ -846,23 +846,20 @@ Name *Compiler::visit_type_cast_node(AST *a) {
 }
 
 Name* Compiler::visit_class_node(AST *a) {
-	if (!a || a->type != AST_CLASS) {
+	if (!a || a->type != AST_CLASS)
 		err_out(COMPILE_TIME_ERROR, "not a class", 0);
-	}
  	normal_debug();
 	string class_name = a->data.data;
-	if (class_name.empty()) {
+	if (class_name.empty())
 		err_out(COMPILE_TIME_ERROR, "no class name", 0);
-	}
 	class_size_map[class_name] = a->class_size;
 	objects[class_name] = ObjectInfo(class_name);
 	auto parent = a->children;
 	vector<AST*> member;
 	vector<AST*> func;
 	AST* constructor = a->id_node;
-	if (!constructor) {
+	if (!constructor)
 		err_out(COMPILE_TIME_ERROR, "no init function", 0);
-	}
 	map<string, AST*> init_value;
 	opcs.push_back(OperatorCommand(make_label(), {CLASS_BEG, class_name}));
 	int offset_base = 1;
@@ -872,9 +869,8 @@ Name* Compiler::visit_class_node(AST *a) {
 			objects[class_name].add_offset(tmp_name, offset_base++);
 			member.push_back(i);
 		}
-		else if (i->type == AST_FUNCTION_DEFINE) {
+		else if (i->type == AST_FUNCTION_DEFINE)
 			func.push_back(i);
-		}
 	}
 	for (auto i : member) {
 		auto name = i->data.data;
@@ -1079,7 +1075,7 @@ public:
 	void crate();
 	void leave();
 	Object visit_objects(ThreeCodeObject);
-	Function visit_function(ThreeCodeFunction);
+	Function visit_function(const ThreeCodeFunction&);
 	void make_goto(Function*, string);
 	void make_if(Function*, string);
 	void make_bin_op(Function*, OperatorCommand);
@@ -1088,8 +1084,31 @@ public:
 	void make_value(Function*, string);
 	void load_value(Function*, string);
 	void save_value(Function*, string, string);
+	void make_ret(Function*, OperatorCommand);
+	void make_load(Function*, OperatorCommand);
 	void setup_build_in();
+	void compile_all();
+	void make_atom(Function*, OperatorCommand);
 };
+
+void MainCompiler::make_load(Function *fn, OperatorCommand op) {
+	string var_name = op.codes[1];
+	int offset = stoi(op.codes[2]);
+	fn->codes.push_back(_psh);
+	fn->codes.push_back(offset);
+	fn->codes.push_back(_psh);
+	fn->codes.push_back(scopes.top().get_id(var_name));
+	fn->codes.push_back(_i_stor);
+}
+
+void MainCompiler::make_ret(Function *fn, OperatorCommand op) {
+	if (op.codes.size() == 2) {
+		make_value(fn, op.codes[1]);
+		fn->codes.push_back(_ret);
+		return;
+	}
+	fn->codes.push_back(_lea);
+}
 
 void MainCompiler::load_value(Function *fn, std::string name) {
 	fn->codes.push_back(_psh);
@@ -1171,7 +1190,7 @@ void MainCompiler::setup_build_in() {
 		func_rec[name] = ThreeCodeFunction(name, id);
 		func_rec[name].opcs.push_back(OperatorCommand("OperatorLanguageBuildInFunction", {lea_}));
 	}
-	for (auto i : build_in_cls_map) {
+	for (const auto& i : build_in_cls_map) {
 		string name = i.first;
 		int id = i.second;
 		object_rec[name] = ThreeCodeObject(name, id);
@@ -1239,7 +1258,7 @@ int MainCompiler::make_func_id() {
 	return make_func_id();
 }
 
-Function MainCompiler::visit_function(ThreeCodeFunction func) {
+Function MainCompiler::visit_function(const ThreeCodeFunction& func) {
 	crate();
 	Function result;
 	int pos = 0;
@@ -1247,6 +1266,8 @@ Function MainCompiler::visit_function(ThreeCodeFunction func) {
 	while (pos < fopcs.size()) {
 		string current_label = fopcs[pos].label_name;
 		scopes.top().solve_label(result.codes.size(), current_label);
+		make_atom(&result, fopcs[pos]);
+		++pos;
 	}
 	int pos1 = 0;
 	while (pos1 < result.codes.size()) {
@@ -1260,7 +1281,7 @@ Function MainCompiler::visit_function(ThreeCodeFunction func) {
 				if (label_id < 0) 
 					result.codes[pos1 + 1] = scopes.top().label_map[scopes.top().unsolve_label_buffer[label_id]];
 			}
-			pos += offset;
+			pos1 += offset;
 		} else {
 			++pos1;
 		}
@@ -1310,9 +1331,41 @@ void MainCompiler::load() {
 }
 
 MainCompiler::MainCompiler(vector<OperatorCommand> opcs) {
-	this->opcs = opcs;
+	this->opcs = std::move(opcs);
 	crate();
 	setup_build_in();
+	load();
+	compile_all();
+}
+
+void MainCompiler::compile_all() {
+	for (const auto& i : func_rec) visit_function(i.second);
+	for (const auto& i : object_rec) visit_objects(i.second);
+}
+
+void MainCompiler::make_atom(Function *fn, OperatorCommand op) {
+	string cmd = op.codes[0];
+	if (cmd == OPER_RET) {
+		make_ret(fn, op);
+		return;
+	} else if (cmd == OPER_DIV || cmd == OPER_ADD || cmd == OPER_MUL || cmd == OPER_SUB || cmd == OPER_MOD) {
+		make_self_calc(fn, op);
+		return;
+	} else if (cmd == OPER_CALL) {
+		make_call(fn, op.codes[1]);
+		return;
+	} else if (cmd == OPER_GOTO) {
+		make_goto(fn, op.codes[1]);
+		return;
+	} else if (cmd == OPER_LOAD || cmd == OPER_VAR_ASSI) {
+		make_load(fn, op);
+		return;
+	} else {
+		if (op.codes[1] == "=") {
+			make_bin_op(fn, op);
+			return;
+		}
+	}
 }
 
 #endif

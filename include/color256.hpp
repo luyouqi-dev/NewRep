@@ -13,27 +13,27 @@ bool is_debug = false;
 bool err_is_exit = true;
 bool war_is_exit = false;
 #define debug_out(fmt, ...) \
-	if (is_debug) {        \
+	{if (is_debug) {        \
 		DEBUG;                \
 		printf("FILE(%s) FUNCTION(%s) LINE(%d) DATA = (", __FILE__, __FUNCTION__, __LINE__); \
 		printf(fmt, __VA_ARGS__);              \
         printf(")\n");                                             \
-	}
+	}}
 
 #define normal_debug() debug_out("", "")
 
 #define warn_out(fmt, ...) \
-	WARN;                 \
+	{WARN;                 \
 	printf("FILE(%s) FUNCTION(%s) LINE(%d) DATA = ", __FILE__, __FUNCTION__, __LINE__); \
 	printf(fmt, __VA_ARGS__)       ;                                                     \
-	if (war_is_exit) exit(-1);
+	if (war_is_exit) exit(-1);}
 
 #define err_out(et, fmt, ...) \
-	ERROR;               \
+	{ERROR;               \
 	printf("FILE(%s) FUNCTION(%s) LINE(%d) DATA = ", __FILE__, __FUNCTION__, __LINE__); \
     cout << et << " ";                      \
 	printf(fmt, __VA_ARGS__)   ;                                                         \
-	if (err_is_exit) exit(-1);
+	if (err_is_exit) exit(-1);}
 
 using namespace std;
 

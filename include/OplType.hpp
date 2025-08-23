@@ -649,7 +649,7 @@ void print_tree(AST* a, int depth = 0, bool is_last = true, vector<bool> indents
 	
 	string prefix;
 	for (size_t i = 0; i < indents.size(); ++i) {
-		// prefix += is_last ? "|   " : "    ";
+		// prefix += is_last ? "|   " : "    "; <------ AI太TM好用了知道吗!
 		prefix += "|   ";
 	}
 	prefix += is_last ? "+---" : "|---";
