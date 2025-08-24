@@ -57,6 +57,7 @@ void file() {
 				cout << j << " ";
 			cout << endl;
 		}
+		MainCompiler mc(cmds);
 	};
 	cmp();
 #endif

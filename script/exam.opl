@@ -3,6 +3,50 @@ class FibNumber {
 	constructor(size: int) void {
 		this.number = new list<int>(size);
 	}
+	public function switch_test() void {
+		let a: int = this.number[1];
+		switch (a) {
+			case 1: {
+				this.number[1] = 90;
+				for (let g = a; g < this.number[1] / 2; ++g)
+					if (g % 2 == 0)
+						print("hello");
+				break;
+			}
+			case 2: {
+				a=a/2;
+				let z: int = this.number[3];
+				z += --z + (++z);
+				for (let i = z; i < a; ++i) {
+					i = i / z;
+					i++;
+					i = i++ + ++i;
+					++i;
+					i += --z + --a;
+				}
+            	break;
+            }
+            case 3: {
+
+                break;
+            }
+            case 4: {
+                break;
+            }
+            case 5: {
+                break;
+            }
+            case 6: {
+                break;
+            }
+            case 7: {
+                break;
+            }
+            default: {
+
+            }
+		}
+	}
 	public function build(n: int) void {
 		this.number[0] = 1;
 		this.number[1] = 1;

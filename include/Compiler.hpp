@@ -63,6 +63,7 @@ CONS OPER_LIST = "NEW_LIST";
 CONS OPER_LOAD = "LOAD"; // LOAD var_name value
 CONS OPER_RET  = "RET";
 CONS OPER_PARAM = "PARAM";
+CONS OPER_STR   = "STR";
 
 struct OperatorCommand {
   string label_name;
@@ -291,8 +292,6 @@ PName Compiler::visit_call_node(AST* a, const string& class_name = "\0") {
 	}
 	vector<string> value_list;
 	string func_name = visit_member_node(a->children[0])->name;
-	if (class_name[0] != 0)
-		func_name = class_name + "$" + func_name;
 	for (int i = 1; i < a->children.size(); ++i) {
 		auto t = a->children[i];
 		if (!t) continue;
@@ -413,7 +412,7 @@ PName Compiler::visit_if_node(AST *a, std::string lb, std::string le) {
 PName Compiler::visit_string_node(AST *a) {
 	normal_debug();
 	string vn = make_var_name();
-	opcs.push_back(OperatorCommand(make_label(), {vn, "=", a->data.data}));
+	opcs.push_back(OperatorCommand(make_label(), {vn, "=", "'" + a->data.data + "'"}));
 	return new Name(vn);
 }
 
@@ -642,10 +641,11 @@ PName Compiler::visit_while_loop_node(AST* a) {
 }
 
 PName Compiler::visit_bin_op_node(AST* a) {
+	cout << "in function visit_bin_op_node - value.type = " << a->type << endl;
 	normal_debug();
 	if (!a) {
 		err_out(COMPILE_TIME_ERROR, "meet null node", 0);
-	} if (match_type(a, AST_DIGIT) || match_type(a, AST_STRING)) {
+	} if (match_type(a, AST_DIGIT)) {
 		string vn = make_var_name();
 		opcs.push_back(OperatorCommand(make_label(), {vn, "=", a->data.data}));
 		return new Name(vn);
@@ -677,6 +677,8 @@ PName Compiler::visit_bin_op_node(AST* a) {
 		return visit_mem_malloc_node(a);
 	} else if (match_type(a, AST_CONV)) {
 		return visit_type_cast_node(a);
+	} else if (match_type(a, AST_STRING)) {
+		return visit_string_node(a);
 	}
 	cout << a->type << endl;
 	string left = visit_bin_op_node(a->children[0])->name;
@@ -763,7 +765,7 @@ PName Compiler::visit_mem_malloc_node(AST* a) {
 	class_name = a->children[0]->children[0]->data.data;
 	if (!a->children[0]->is_block) {
 		string name = make_this_name(a->data.data);
-		string ret_name = visit_call_node(a->children[0], class_name)->name;
+		string ret_name = visit_call_node(a->children[0])->name;
 		opcs.push_back(OperatorCommand(make_label(), {name, "=", ret_name}));
 		return new Name(name);
 	} else {
@@ -789,8 +791,6 @@ PName Compiler::visit_ret_node(AST* a) {
 	}	
 	RENUL;
 }
-
-
 
 PName Compiler::visit_var_def_node(AST* a) {
 	normal_debug();
@@ -923,7 +923,7 @@ Name* Compiler::visit_class_node(AST *a) {
 		// cout << ret_type.rootType << endl;
 		err_out(COMPILE_TIME_ERROR, "\"constructor\" is not a legitimate constructor", 0);
 	}
-	opcs.push_back(OperatorCommand(make_label(), {FUNC_BEG, class_name + "$" + "constructor"}));
+	opcs.push_back(OperatorCommand(make_label(), {FUNC_BEG, class_name}));
 	opcs.push_back(OperatorCommand(make_label(), {OPER_SPACE, to_string(a->class_size)}));
 	for (int i = 0; i < constructor_val_list.size(); ++i) {
 		auto cur_val = constructor_val_list[i]->data.data;
@@ -945,7 +945,7 @@ Name* Compiler::visit_class_node(AST *a) {
 	
 	// build member function
 	for (auto i : func) {
-		string name = class_name + "$" + i->data.data;
+		string name = i->data.data;
 		cout << "build class function member: " << name << endl;
 		auto value_list = i->children[0];
 		auto body = i->children[1]->children;
@@ -954,9 +954,8 @@ Name* Compiler::visit_class_node(AST *a) {
 			auto van = value_list->children[j]->data.data;
 			opcs.push_back(OperatorCommand(make_label(), {OPER_LOAD, van, "#" + to_string(j)}));
 		}
-		for (auto j : body) {
+		for (auto j : body)
 			visit_atom(j, "<ERROR>", "<ERROR>");
-		}
 		opcs.push_back(OperatorCommand(make_label(), {FUNC_END}));
 	}
 	RENUL;
@@ -1143,8 +1142,18 @@ public:
 	void setup_build_in();
 	void compile_all();
 	void make_atom(Function*, OperatorCommand);
+	void make_string(Function*, string);
 	void make_param(Function*, OperatorCommand);
 };
+
+void MainCompiler::make_string(Function *fn, std::string str) {
+	str += (char)0;
+	for (int i = str.size() - 2; i <= 1; --i) { // skip '
+		fn->codes.push_back(_psh);
+		fn->codes.push_back((int)str[i]);
+	}
+	fn->codes.push_back(_hsst);
+}
 
 void MainCompiler::make_param(Function *fn, OperatorCommand op) {
 	string value = op.codes[1];
@@ -1161,9 +1170,10 @@ void MainCompiler::make_load_ret_val(Function *fn, OperatorCommand op) {
 
 void MainCompiler::make_load(Function *fn, OperatorCommand op) {
 	string var_name = op.codes[1];
-	int offset = stoi(op.codes[2]);
-	fn->codes.push_back(_psh);
-	fn->codes.push_back(offset);
+	// int offset = stoi(op.codes[2]);
+	// fn->codes.push_back(_psh);
+	// fn->codes.push_back(offset);
+	make_value(fn, op.codes[2]);
 	fn->codes.push_back(_psh);
 	fn->codes.push_back(scopes.top().get_id(var_name));
 	fn->codes.push_back(_i_stor);
@@ -1192,9 +1202,21 @@ void MainCompiler::save_value(Function *fn, std::string name, string value) {
 }
 
 void MainCompiler::make_value(Function *fn, std::string value) {
+	if (value[0] == '\'') {
+		make_string(fn, value);
+		return;
+	}
 	if (isdigit(value)) {
 		fn->codes.push_back(_psh);
-		fn->codes.push_back(stoi(value));
+		if (isdigit(value))
+			fn->codes.push_back(stoi(value));
+		else {
+			for (int i = 0; i < value.size(); ++i) {
+				fn->codes.push_back(_psh);
+				fn->codes.push_back((int)value[i]);
+			}
+			fn->codes.push_back(_hsst);
+		}
 		return;
 	}
 	fn->codes.push_back(_psh);
@@ -1219,6 +1241,7 @@ void MainCompiler::make_self_calc(Function *fn, OperatorCommand op) {
 }
 
 void MainCompiler::make_bin_op(Function *fn, OperatorCommand op) {
+	// v1 = v2 + v3
 	if (op.codes.size() == 3) {
 		make_value(fn, op.codes[2]);
 		fn->codes.push_back(_psh);
@@ -1391,27 +1414,26 @@ void MainCompiler::load() {
 	while (i < opcs.size()) {
 		if (opcs[i].codes[0] == CLASS_BEG) {
 			string name = opcs[i].codes[1];
-			++i;
 			vector<OperatorCommand> temp;
 			while (opcs[i].codes[0] != CLASS_END)
 				temp.push_back(opcs[i++]);
-			++i;
 			object_rec[name] = ThreeCodeObject(temp);
 			object_rec[name].id = make_class_id();
 			object_rec[name].name = name;
-			++obj_cnt;
+			++i;
 		}
 		if (opcs[i].codes[0] == FUNC_BEG) {
 			string name = opcs[i].codes[1];
-			++i;
 			vector<OperatorCommand> temp;
-			while (opcs[i].codes[0] != CLASS_END)
+			while (opcs[i].codes[0] != FUNC_END)
 				temp.push_back(opcs[i++]);
-			++i;
 			func_rec[name] = ThreeCodeFunction(temp);
 			func_rec[name].id = make_func_id();
 			func_rec[name].name = name;
-			++func_cnt;
+			++i;
+		} else {
+			cout << "UNKNOWN: " << opcs[i].codes[0] << endl;
+			++i;
 		}
 	}
 }
