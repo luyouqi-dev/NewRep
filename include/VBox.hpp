@@ -30,7 +30,7 @@ struct Object {
 
 struct Function {
 	vector<int> codes;
-	int id, parent_class;
+	int id;
 	int value_list_size;
 	FunctionType type = FT_USER_DEFINE;
 };
@@ -196,9 +196,8 @@ void VirtualMachine::setup_build_in() {
 	for (auto i : vm_build_in_fn_map) {
 		auto bi_fn = new Function;
 		bi_fn->id = i.second[0];
-		bi_fn->parent_class = i.second[1];
-		bi_fn->value_list_size = i.second[2];
-		bi_fn->codes.push_back(i.second[3]);
+		bi_fn->value_list_size = i.second[1];
+		bi_fn->codes.push_back(i.second[2]);
 		functions.push_back(bi_fn);
 	}
 	for (auto i : vm_build_in_class) {
@@ -303,6 +302,7 @@ int VirtualMachine::execute() {
 				crate(id);
 				for (auto h : func_value)
 					CUR_FRAME.psh(h);
+				func_value.clear();
 				break;
 			}
 			case _dup: {
@@ -370,10 +370,13 @@ int VirtualMachine::execute() {
 				break;
 			}
 			case _param : {
-				int size = CUR_FRAME.pop();
-				func_value.clear();
-				while (size--) func_value.push_back(CUR_FRAME.pop());
-				std::reverse(func_value.begin(), func_value.end());
+				int value = CUR_FRAME.get();
+				func_value.push_back(value);
+				break;
+			}
+			case _sparam: {
+				int value = CUR_FRAME.pop();
+				func_value.push_back(value);
 				break;
 			}
 			case _hsst : {
@@ -449,6 +452,7 @@ int VirtualMachine::execute() {
 					CUR_FRAME.psh(h);
 				if (fn->type == FT_BUILD_IN)
 					call_build_in(id);
+				func_value.clear();
 				break;
 			}
 			case _ret : {
@@ -505,7 +509,6 @@ void VirtualMachine::load_object() {
 			int id, parent = -1, val_size, body_size;
 			vector<int> body;
 			id = opcs[i++];
-			parent = opcs[i++];
 			val_size = opcs[i++];
 			body_size = opcs[i++];
 			for (int j = 0; j < body_size; ++j)
@@ -514,7 +517,6 @@ void VirtualMachine::load_object() {
 			nfn->codes = body;
 			nfn->id = id;
 			nfn->value_list_size = val_size;
-			nfn->parent_class = parent;
 			functions.push_back(nfn);
 		} else if (op == SET_CLASS) {
 			int id, size, psize;

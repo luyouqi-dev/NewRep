@@ -643,7 +643,6 @@ void pt(AST* a) {
 	cout << "<" << a->type << ": '" << a->data.data << "'> ";
 }
 
-// 添加颜色控制宏定义（兼容多数终端）
 #define COLOR_RESET  string("\033[0m")
 #define COLOR_GRAY   string("\033[90m")
 #define COLOR_RED    string("\033[31m")

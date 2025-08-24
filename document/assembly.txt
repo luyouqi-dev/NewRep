@@ -9,7 +9,6 @@ class_define:
 
 function_define:
 	<function_id>
-	<parent_class>
 	<function_value_size>
 	<function_body_size>
 	<function_body> [ ... ]

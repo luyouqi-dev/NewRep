@@ -34,6 +34,7 @@ enum Assembly {
 	_i_load = 0x123, // 1
 	_i_stor = 0x1123, // 2
 	_param = 0xfe567,
+	_sparam = 0xf0f57,
 	_sddl = 0x98f123,
 	_hsst = 0x98fffe,
 	_new = 0xeabcd,
@@ -178,15 +179,15 @@ unordered_map<string, int> build_in_cls_map = {
 
 unordered_map<string, vector<int>> vm_build_in_fn_map = {
 	/*  {name,    {id,     parent_class, value_size, ret_type}}  */
-	{"print",     {PRINT_,      -1,        1,         _lea}},
-	{"input",     {INPUT_,      -1,        1,         _ret}},
-	{"to_string", {TO_STRING_,  -1,        1,         _ret}},
-	{"to_int",    {TO_INTEGER_, -1,        1,         _ret}},
-	{"size",      {LSIZE,       BS_LIST,   1,         _ret}},
-	{"pop",       {SPOP,        BS_STACK,  1,         _ret}},
-	{"push",      {SPSH,        BS_STACK,  2,         _lea}},
-	{"top",       {STOP,        BS_STACK,  1,         _ret}},
-	{"append",    {LAPPEND,     BS_LIST,   2,         _lea}}
+	{"print",     {PRINT_,        1,         _lea}},
+	{"input",     {INPUT_,             1,         _ret}},
+	{"to_string", {TO_STRING_,        1,         _ret}},
+	{"to_int",    {TO_INTEGER_,      1,         _ret}},
+	{"size",      {LSIZE,         1,         _ret}},
+	{"pop",       {SPOP,          1,         _ret}},
+	{"push",      {SPSH,          2,         _lea}},
+	{"top",       {STOP,          1,         _ret}},
+	{"append",    {LAPPEND,       2,         _lea}}
 };
 
 unordered_map<string, vector<int>> vm_build_in_class = {

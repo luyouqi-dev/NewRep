@@ -273,11 +273,44 @@ private:
 	PName visit_self_mod_node(AST*); // x %= y
 	PName visit_mem_malloc_node(AST*); // new ClassName<TypeList>(Args)
 	PName visit_ret_node(AST*); // return <EXPR>
-	PName visit_call_node(AST*); // funcName(args)
+	PName visit_call_node(AST*, const string&); // funcName(args)
 	PName visit_var_def_node(AST*); // let NAME: TYPE = VALUE
 	PName visit_var_assign_node(AST*); // NAME = VALUE
 	PName visit_string_node(AST*);
 };
+
+PName Compiler::visit_call_node(AST* a, const string& class_name = "\0") {
+	auto function_address = a->children[0];
+	if (function_address->type == AST_MEMBER) {
+		return visit_member_node(a);
+	}
+	normal_debug();
+	if (a == nullptr) {
+		cout << "Compile time error: meet null node" << endl;
+		exit(-1);
+	}
+	vector<string> value_list;
+	string func_name = visit_member_node(a->children[0])->name;
+	if (class_name[0] != 0)
+		func_name = class_name + "$" + func_name;
+	for (int i = 1; i < a->children.size(); ++i) {
+		auto t = a->children[i];
+		if (!t) continue;
+		auto n = visit_bin_op_node(t);
+		if (!n) err_out(COMPILE_TIME_ERROR, "meet null node", 0);
+		value_list.push_back(n->name);
+	}
+	vector<string> pr_val;
+	if (value_list.size() > 0) {
+		pr_val.push_back(OPER_PARAM);
+		for (auto i : value_list) pr_val.push_back(i);
+		opcs.push_back(OperatorCommand(make_label(), pr_val));
+	}
+	opcs.push_back(OperatorCommand(make_label(), {OPER_CALL, func_name}));
+	string ret_val_sc = make_var_name();
+	opcs.push_back(OperatorCommand(make_label(), {OPER_LD_RET, ret_val_sc}));
+	return new Name(ret_val_sc);
+}
 
 PName Compiler::visit_load_library_node(AST* a) {
 	// using "name";
@@ -491,9 +524,7 @@ PName Compiler::visit_switch_node(AST* a) {
 		if (cases[i]->type == AST_CASE) {
 			auto value = visit_bin_op_node(cases[i]->children[0]);
 			string val__ = "<DEFAULT>";
-			if (value) {
-				val__ = value->name;
-			}
+			if (value) val__ = value->name;
 			opcs.push_back(OperatorCommand(make_label(), {OPER_IF, name, "=", val__, OPER_GOTO, case_label[i]}));
 		} else if (cases[i]->type == AST_DEFAULT) {
 			opcs.push_back(OperatorCommand(make_label(), {OPER_GOTO, end_l}));
@@ -728,9 +759,11 @@ PName Compiler::visit_self_mod_node(AST* a) {
 PName Compiler::visit_mem_malloc_node(AST* a) {
 	normal_debug();
 	if (!a) RENUL;
+	string class_name;
+	class_name = a->children[0]->children[0]->data.data;
 	if (!a->children[0]->is_block) {
 		string name = make_this_name(a->data.data);
-		string ret_name = visit_call_node(a->children[0])->name;
+		string ret_name = visit_call_node(a->children[0], class_name)->name;
 		opcs.push_back(OperatorCommand(make_label(), {name, "=", ret_name}));
 		return new Name(name);
 	} else {
@@ -757,38 +790,7 @@ PName Compiler::visit_ret_node(AST* a) {
 	RENUL;
 }
 
-PName Compiler::visit_call_node(AST* a) {
-	auto function_address = a->children[0];
-	if (function_address->type == AST_MEMBER) {
-		return visit_member_node(a);
-	}
-	normal_debug();
-	if (a == nullptr) {
-		cout << "Compile time error: meet null node" << endl;
-		exit(-1);
-	}
-	vector<string> value_list;
-	string func_name = visit_member_node(a->children[0])->name;
-	for (int i = 1; i < a->children.size(); ++i) {
-		auto t = a->children[i];
-		if (!t) continue;
-		auto n = visit_bin_op_node(t);
-		if (!n) {
-			err_out(COMPILE_TIME_ERROR, "meet null node", 0);
-		}
-		value_list.push_back(n->name);
-	}
-	vector<string> pr_val;
-	if (value_list.size() > 0) {
-		pr_val.push_back(OPER_PARAM);
-		for (auto i : value_list) pr_val.push_back(i);
-		opcs.push_back(OperatorCommand(make_label(), pr_val));
-	}
-	opcs.push_back(OperatorCommand(make_label(), {OPER_CALL, func_name}));
-	string ret_val_sc = make_var_name();
-	opcs.push_back(OperatorCommand(make_label(), {OPER_LD_RET, ret_val_sc}));
-	return new Name(ret_val_sc);
-}
+
 
 PName Compiler::visit_var_def_node(AST* a) {
 	normal_debug();
@@ -909,7 +911,7 @@ Name* Compiler::visit_class_node(AST *a) {
 		auto val = i->children[1];
 		auto typ = make_id_type_node(i->children[0]).rootType;
 		if (val) init_value[name] = val;
-		opcs.push_back(OperatorCommand(make_label(), {OPER_SPACE,name,to_string(class_size_map[typ])}));
+		opcs.push_back(OperatorCommand(make_label(), {OPER_SPACE, name, typ}));
 	}
 	opcs.push_back(OperatorCommand(make_label(), {CLASS_END}));
 	
@@ -1093,6 +1095,22 @@ int CScope::record_label(string l) {
 	return unsolve_label_cnt;
 }
 
+struct VMByteCode {
+	int main_point;
+	vector<Function*> functions;
+	vector<Object*> objects;
+	void add(Function);
+	void add(Object);
+};
+
+void VMByteCode::add(Object obj) {
+	objects.push_back(&obj);
+}
+
+void VMByteCode::add(Function fn) {
+	functions.push_back(&fn);
+}
+
 class MainCompiler {
 public:
 	MainCompiler(vector<OperatorCommand>);
@@ -1100,6 +1118,9 @@ public:
 	stack<CScope> scopes;
 	unordered_map<string, ThreeCodeObject> object_rec; 
 	unordered_map<string, ThreeCodeFunction> func_rec;
+	unordered_map<string, int> func_id_rec;
+	unordered_map<string, int> class_id_rec;
+	VMByteCode vmbc;
 	int class_cnt{}, func_cnt_{};
 	int make_class_id();
 	int make_func_id();
@@ -1122,7 +1143,14 @@ public:
 	void setup_build_in();
 	void compile_all();
 	void make_atom(Function*, OperatorCommand);
+	void make_param(Function*, OperatorCommand);
 };
+
+void MainCompiler::make_param(Function *fn, OperatorCommand op) {
+	string value = op.codes[1];
+	make_value(fn, value);
+	fn->codes.push_back(_sparam);
+}
 
 void MainCompiler::make_load_ret_val(Function *fn, OperatorCommand op) {
 	string name = op.codes[1];
@@ -1306,12 +1334,17 @@ int MainCompiler::make_func_id() {
 }
 
 Function MainCompiler::visit_function(const ThreeCodeFunction& func) {
-	crate();
 	Function result;
+	
+	// setup function body
+	crate();
 	int pos = 0;
+	int value_size = 0;
 	auto fopcs = func.opcs;
 	while (pos < fopcs.size()) {
 		string current_label = fopcs[pos].label_name;
+		if (fopcs[pos].codes[0] == OPER_PARAM)
+			++value_size;
 		scopes.top().solve_label(result.codes.size(), current_label);
 		make_atom(&result, fopcs[pos]);
 		++pos;
@@ -1334,11 +1367,17 @@ Function MainCompiler::visit_function(const ThreeCodeFunction& func) {
 		}
 	}
 	leave();
+	
+	// setup function info
+	result.id = func.id;
+	result.type = FT_USER_DEFINE;
+	result.value_list_size = value_size;
 	return result;
 }
 
 Object MainCompiler::visit_objects(ThreeCodeObject obj) {
 	Object result;
+	result.id = obj.id;
 	int pos = 0;
 	auto copcs = obj.opcs;
 	while (pos < copcs.size()) {
@@ -1358,7 +1397,7 @@ void MainCompiler::load() {
 				temp.push_back(opcs[i++]);
 			++i;
 			object_rec[name] = ThreeCodeObject(temp);
-			object_rec[name].id = obj_cnt;
+			object_rec[name].id = make_class_id();
 			object_rec[name].name = name;
 			++obj_cnt;
 		}
@@ -1370,7 +1409,7 @@ void MainCompiler::load() {
 				temp.push_back(opcs[i++]);
 			++i;
 			func_rec[name] = ThreeCodeFunction(temp);
-			func_rec[name].id = func_cnt;
+			func_rec[name].id = make_func_id();
 			func_rec[name].name = name;
 			++func_cnt;
 		}
@@ -1386,8 +1425,8 @@ MainCompiler::MainCompiler(vector<OperatorCommand> opcs) {
 }
 
 void MainCompiler::compile_all() {
-	for (const auto& i : func_rec) visit_function(i.second);
-	for (const auto& i : object_rec) visit_objects(i.second);
+	for (const auto& i : func_rec) vmbc.add(visit_function(i.second));
+	for (const auto& i : object_rec) vmbc.add(visit_objects(i.second));
 }
 
 void MainCompiler::make_atom(Function *fn, OperatorCommand op) {
@@ -1409,6 +1448,9 @@ void MainCompiler::make_atom(Function *fn, OperatorCommand op) {
 		return;
 	} else if (cmd == OPER_GET_RET_VAL) {
 		make_load_ret_val(fn, op);
+		return;
+	} else if (cmd == OPER_PARAM) {
+		make_param(fn, op);
 		return;
 	} else {
 		if (op.codes[1] == "=") {
