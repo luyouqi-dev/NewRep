@@ -164,15 +164,15 @@ unordered_map<string, vector<int>> build_in_id_map = {
 	{ "top",             {STOP,               1} },
 };
 
-unordered_map<string, int> build_in_cls_map = {
-	{"int",   BS_INT},
-	{"double", BS_DOUBLE},
-	{"bool",   BS_BOOL},
-	{"string", BS_STR},
-	{"list",  BS_LIST},
-	{"stack", BS_STACK},
-	{"void", BS_VOID},
-	{"char", BS_CHAR},
+unordered_map<string, vector<int>> build_in_cls_map = {
+	{"int", {BS_INT, 0xf34}},
+	{"double", {BS_DOUBLE, 0xdf4}},
+	{"bool", {BS_BOOL, 0x996f}},
+	{"string", {BS_STR, 0x9873}},
+	{"list", {BS_LIST, 0x9fea}},
+	{"stack", {BS_STACK, 0xddf}},
+	{"void", {BS_VOID, 0xafe}},
+	{"char", {BS_CHAR, 0x0f0}},
 };
 
 

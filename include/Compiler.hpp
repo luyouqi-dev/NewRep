@@ -64,6 +64,7 @@ CONS OPER_LOAD = "LOAD"; // LOAD var_name value
 CONS OPER_RET  = "RET";
 CONS OPER_PARAM = "PARAM";
 CONS OPER_STR   = "STR";
+CONS OPER_NEW   = "NEW";
 
 struct OperatorCommand {
   string label_name;
@@ -924,6 +925,7 @@ Name* Compiler::visit_class_node(AST *a) {
 		err_out(COMPILE_TIME_ERROR, "\"constructor\" is not a legitimate constructor", 0);
 	}
 	opcs.push_back(OperatorCommand(make_label(), {FUNC_BEG, class_name}));
+	opcs.push_back(OperatorCommand(make_label(), {OPER_NEW, class_name}));
 	opcs.push_back(OperatorCommand(make_label(), {OPER_SPACE, to_string(a->class_size)}));
 	for (int i = 0; i < constructor_val_list.size(); ++i) {
 		auto cur_val = constructor_val_list[i]->data.data;
@@ -1070,8 +1072,14 @@ struct CScope {
 	int record_label(string);
 	bool label_is_exist(string);
 	void solve_label(int, string);
+	int make_var(string);
 	int get_id(string);
 };
+
+int CScope::make_var(std::string name) {
+	var_record[name] = ++var_cnt;
+	return var_record[name];
+}
 
 int CScope::get_id(string s) {
 	auto v = var_record.find(s);
@@ -1095,19 +1103,39 @@ int CScope::record_label(string l) {
 }
 
 struct VMByteCode {
-	int main_point;
-	vector<Function*> functions;
-	vector<Object*> objects;
+	int main_point = -1;
+	vector<Function> functions;
+	vector<Object> objects;
 	void add(Function);
 	void add(Object);
+	void debug();
 };
 
+void VMByteCode::debug() {
+	printf("mainPoint = %d\n", main_point);
+	printf("Functions: ");
+	for (auto i : functions) {
+		printf("\n    Function[%d]\n", i.id);
+		printf("        FunctionBody: [ ");
+		for (int j = 0; j < i.codes.size(); ++j) {
+			if (!(j % 10)) printf("\n            ");
+			printf("0x%X ", i.codes[j]);
+		}
+		printf("\n        ]\n");
+	}
+	for (auto i : objects) {
+		printf("\n    Object[%d]\n", i.id);
+		for (auto j : i.member_map)
+			printf("        %d : %d\n", j.first, j.second);
+	}
+}
+
 void VMByteCode::add(Object obj) {
-	objects.push_back(&obj);
+	objects.push_back(obj);
 }
 
 void VMByteCode::add(Function fn) {
-	functions.push_back(&fn);
+	functions.push_back(fn);
 }
 
 class MainCompiler {
@@ -1120,7 +1148,7 @@ public:
 	unordered_map<string, int> func_id_rec;
 	unordered_map<string, int> class_id_rec;
 	VMByteCode vmbc;
-	int class_cnt{}, func_cnt_{};
+	int class_cnt = 0, func_cnt_ = 0;
 	int make_class_id();
 	int make_func_id();
 	void load();
@@ -1140,11 +1168,16 @@ public:
 	void make_load(Function*, OperatorCommand);
 	void make_load_ret_val(Function*, OperatorCommand);
 	void setup_build_in();
+	void make_var_define(Function*, OperatorCommand);
 	void compile_all();
 	void make_atom(Function*, OperatorCommand);
 	void make_string(Function*, string);
 	void make_param(Function*, OperatorCommand);
 };
+
+void MainCompiler::make_var_define(Function *fn, OperatorCommand op) {
+	scopes.top().make_var(op.codes[1]);
+}
 
 void MainCompiler::make_string(Function *fn, std::string str) {
 	str += (char)0;
@@ -1286,12 +1319,14 @@ void MainCompiler::setup_build_in() {
 		int id = i.second[0];
 		string lea_ = i.second[1] ? OPER_RET : OPER_LEAVE;
 		func_rec[name] = ThreeCodeFunction(name, id);
-		func_rec[name].opcs.push_back(OperatorCommand("OperatorLanguageBuildInFunction", {lea_}));
+		func_rec[name].opcs.push_back(OperatorCommand("OperatorLanguageBuildInFunction" + to_string(id), {lea_}));
 	}
 	for (const auto& i : build_in_cls_map) {
 		string name = i.first;
-		int id = i.second;
+		int id = i.second[0];
 		object_rec[name] = ThreeCodeObject(name, id);
+		func_rec[name] = ThreeCodeFunction(name, i.second[1]);
+		func_rec[name].opcs.push_back(OperatorCommand("OperatorLanguageBuildInClassConstructor" + to_string(id), {OPER_NEW, name}));
 	}
 }
 
@@ -1358,7 +1393,6 @@ int MainCompiler::make_func_id() {
 
 Function MainCompiler::visit_function(const ThreeCodeFunction& func) {
 	Function result;
-	
 	// setup function body
 	crate();
 	int pos = 0;
@@ -1403,9 +1437,13 @@ Object MainCompiler::visit_objects(ThreeCodeObject obj) {
 	result.id = obj.id;
 	int pos = 0;
 	auto copcs = obj.opcs;
-	while (pos < copcs.size()) {
-		
+	for (int i = 0; i < copcs.size(); ++i) {
+		OperatorCommand opc = copcs[i];
+		string name = opc.codes[1];
+		string parent_class = opc.codes[2];
+		result.member_map[i] = object_rec[parent_class].id;
 	}
+	result.size = copcs.size();
 	return result;
 }
 
@@ -1415,6 +1453,7 @@ void MainCompiler::load() {
 		if (opcs[i].codes[0] == CLASS_BEG) {
 			string name = opcs[i].codes[1];
 			vector<OperatorCommand> temp;
+			++i;
 			while (opcs[i].codes[0] != CLASS_END)
 				temp.push_back(opcs[i++]);
 			object_rec[name] = ThreeCodeObject(temp);
@@ -1425,6 +1464,7 @@ void MainCompiler::load() {
 		if (opcs[i].codes[0] == FUNC_BEG) {
 			string name = opcs[i].codes[1];
 			vector<OperatorCommand> temp;
+			++i;
 			while (opcs[i].codes[0] != FUNC_END)
 				temp.push_back(opcs[i++]);
 			func_rec[name] = ThreeCodeFunction(temp);
@@ -1471,6 +1511,8 @@ void MainCompiler::make_atom(Function *fn, OperatorCommand op) {
 	} else if (cmd == OPER_GET_RET_VAL) {
 		make_load_ret_val(fn, op);
 		return;
+	} else if (cmd == OPER_VAR) {
+		make_var_define(fn, op);
 	} else if (cmd == OPER_PARAM) {
 		make_param(fn, op);
 		return;

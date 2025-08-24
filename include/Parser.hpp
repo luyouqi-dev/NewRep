@@ -807,6 +807,7 @@ AST *Parser::make_class() {
 	consume("}", __func__ );
 	leave();
 	auto cls = new ClassNode(name, constructor, parent_map, temps, v);
+	
 	class_size_record[name.data] = get_class_size(cls);
 	cls->class_size = class_size_record[name.data];
 	return cls;

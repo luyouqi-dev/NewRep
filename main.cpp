@@ -58,6 +58,7 @@ void file() {
 			cout << endl;
 		}
 		MainCompiler mc(cmds);
+		mc.vmbc.debug();
 	};
 	cmp();
 #endif
