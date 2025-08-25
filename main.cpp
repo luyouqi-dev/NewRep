@@ -31,7 +31,7 @@ void file() {
 	string default_file = R"(D:\CLionProjects\ProgramLanguageInCpp\script\exam.opl)";
 	string file1 = R"(D:\CLionProjects\ProgramLanguageInCpp\script\test1.opl)";
 	string file2 = R"(D:\CLionProjects\ProgramLanguageInCpp\script\test2.opl)";
-	string data = read_file(default_file);
+	string data = read_file(file1);
 	Lexer lexer(data);
 	Parser parser(lexer.tokens);
 	auto res = parser.result.ast;

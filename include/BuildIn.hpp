@@ -35,7 +35,6 @@ enum Assembly {
 	_i_stor = 0x1123, // 2
 	_param = 0xfe567,
 	_sparam = 0xf0f57,
-	_sddl = 0x98f123,
 	_hsst = 0x98fffe,
 	_new = 0xeabcd,
 	_sdup = 0x9ffffe3,
@@ -77,11 +76,11 @@ unordered_map<int, int> asm_value_size = {
 	{ _psh,        1 },
 	{_sparam,       0},
 	{ _pop,        0 },
-	{ _a_psh,      0 }, 
+	{ _a_psh,      0 },
 	{ _a_pop,      0 },
-	{ _imm,        0 }, 
-	{ _i_load,     0 }, 
-	{ _i_stor,     0 }, 
+	{ _imm,        0 },
+	{ _i_load,     0 },
+	{ _i_stor,     0 },
 	{ _param,      1 },
 	{ _hsst,       0 },
 	{ _new,        0 },
@@ -89,13 +88,13 @@ unordered_map<int, int> asm_value_size = {
 	{ _or,         0 },
 	{ _and,        0 },
 	{ _not,        0 },
-	{ _cbg,        0 }, 
-	{ _cls,        0 }, 
+	{ _cbg,        0 },
+	{ _cls,        0 },
 	{ _ceq,        0 },
 	{ _cne,        0 },
 	{ _jt,         1 },
 	{ _jmp,        1 },
-	{ _call,       1 }, 
+	{ _call,       1 },
 	{ _scall,      0 },
 	{ _ret,        0 },
 	{ _lea,        0 },
@@ -114,13 +113,13 @@ unordered_map<int, string> asm_string_map = {
 	{ _left_mv,    "_left_mv" },
 	{ _right_mv,    "_right_mv"},
 	{ _dup,    "_dup"     },
-	{ _psh,    "_psh"     }, 
+	{ _psh,    "_psh"     },
 	{ _pop,    "_pop"     },
-	{ _a_psh,    "_a_psh"   }, 
+	{ _a_psh,    "_a_psh"   },
 	{ _a_pop,    "_a_pop"   },
-	{ _imm,    "_imm"     }, 
-	{ _i_load,    "_i_load"  }, 
-	{ _i_stor,    "_i_stor"  }, 
+	{ _imm,    "_imm"     },
+	{ _i_load,    "_i_load"  },
+	{ _i_stor,    "_i_stor"  },
 	{ _param,    "_param"   },
 	{ _hsst,    "_hsst"    },
 	{ _new,    "_new"     },
@@ -128,14 +127,14 @@ unordered_map<int, string> asm_string_map = {
 	{ _or,    "_or"      },
 	{ _and,    "_and"     },
 	{ _not,    "_not"     },
-	{ _cbg,    "_cbg"     }, 
+	{ _cbg,    "_cbg"     },
 	{ _cls,    "_cls"     },
 	{_sparam, "_sparam"},
 	{ _ceq,    "_ceq"     },
 	{ _cne,    "_cne"     },
 	{ _jt,    "_jt"      },
 	{ _jmp,    "_jmp"     },
-	{ _call,    "_call"    }, 
+	{ _call,    "_call"    },
 	{ _scall,    "_scall"   },
 	{ _ret,    "_ret"     },
 	{ _lea,    "_lea"     },
@@ -167,22 +166,15 @@ vector<string> build_in_function = {
 	"input",
 	"to_string",
 	"to_int",
-	"append", /*list.append*/
-	"size"/*list.size*/,
-	"pop" /*stack.pop*/,
-	"push" /*stack.push*/,
-	"top" /*stack.top*/,
 };
 
-vector<string> build_in_class = { 
-	"int", 
-	"double", 
+vector<string> build_in_class = {
+	"int",
+	"double",
 	"bool",
-  "string", 
-	"list", 
-	"stack", 
-	"void", 
-	"char" 
+	"string",
+	"void",
+	"char"
 };
 
 enum BuildInFunction {
@@ -190,11 +182,6 @@ enum BuildInFunction {
 	INPUT_ = 0X1AC,
 	TO_STRING_ = 0XACE,
 	TO_INTEGER_ = 0XACEF4,
-	LSIZE  = 0X0EFC,
-	LAPPEND = 0X11FFEA,
-	SPOP  = 0X11001,
-	SPSH  = 0X001100,
-	STOP = 0X121212
 };
 
 enum BuildInClass {
@@ -203,59 +190,38 @@ enum BuildInClass {
 	BS_CHAR = 0xcfed3,
 	BS_DOUBLE = 0xcfed4,
 	BS_BOOL = 0xcfed5,
-	BS_LIST = 0xcfed6,
-	BS_STACK = 0xcfed7,
 	BS_VOID  = 0XCFED903
 };
 
 unordered_map<string, vector<int>> build_in_id_map = {
- //  name               id             ret(1)/lea(0)
-	{ "print",         {PRINT_,               0} },
-	{ "input",         {INPUT_,               1} },
-	{ "to_string", {TO_STRING_,               1} },
-	{ "to_int",   {TO_INTEGER_,               1} },
-	{ "append",         {LAPPEND,              0} },
-	{ "size",         {LSIZE,                 1} },
-	{ "pop",             {SPOP,               1} },
-	{ "push",            {SPSH,               0} },
-	{ "top",             {STOP,               1} },
+	{ "print",      {PRINT_,       0} },
+	{ "input",      {INPUT_,       1} },
+	{ "to_string",  {TO_STRING_,   1} },
+	{ "to_int",     {TO_INTEGER_,  1} },
 };
 
 unordered_map<string, vector<int>> build_in_cls_map = {
-	{"int", {BS_INT, 0xf34}},
+	{"int",    {BS_INT, 0xf34}},
 	{"double", {BS_DOUBLE, 0xdf4}},
-	{"bool", {BS_BOOL, 0x996f}},
+	{"bool",   {BS_BOOL, 0x996f}},
 	{"string", {BS_STR, 0x9873}},
-	{"list", {BS_LIST, 0x9fea}},
-	{"stack", {BS_STACK, 0xddf}},
-	{"void", {BS_VOID, 0xafe}},
-	{"char", {BS_CHAR, 0x0f0}},
+	{"void",   {BS_VOID, 0xafe}},
+	{"char",   {BS_CHAR, 0x0f0}},
 };
 
-
-
 unordered_map<string, vector<int>> vm_build_in_fn_map = {
-	/*  {name,    {id,     parent_class, value_size, ret_type}}  */
 	{"print",     {PRINT_,        1,         _lea}},
-	{"input",     {INPUT_,             1,         _ret}},
-	{"to_string", {TO_STRING_,        1,         _ret}},
-	{"to_int",    {TO_INTEGER_,      1,         _ret}},
-	{"size",      {LSIZE,         1,         _ret}},
-	{"pop",       {SPOP,          1,         _ret}},
-	{"push",      {SPSH,          2,         _lea}},
-	{"top",       {STOP,          1,         _ret}},
-	{"append",    {LAPPEND,       2,         _lea}}
+	{"input",     {INPUT_,        1,         _ret}},
+	{"to_string", {TO_STRING_,    1,         _ret}},
+	{"to_int",    {TO_INTEGER_,   1,         _ret}},
 };
 
 unordered_map<string, vector<int>> vm_build_in_class = {
-//  name        id       size (-1 = autoSize)
-	{"int",    {BS_INT   ,  1}},
-	{"string", {BS_STR   ,  1}},
-	{"char",   {BS_CHAR  ,  1}},
-	{"double", {BS_DOUBLE,  1}},
-	{"bool",   {BS_BOOL  ,  1}},
-	{"list",   {BS_LIST  , -1}},
-	{"stack",  {BS_STACK , -1}}
+	{"int",    {BS_INT,    1}},
+	{"string", {BS_STR,    1}},
+	{"char",   {BS_CHAR,   1}},
+	{"double", {BS_DOUBLE, 1}},
+	{"bool",   {BS_BOOL,   1}}
 };
 
 #endif //PROGRAMLANGUAGEINCPP_BUILDIN_HPP

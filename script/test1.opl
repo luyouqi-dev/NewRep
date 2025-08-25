@@ -1,6 +1,17 @@
-function main() void {
-	let a = 0;
-	if (a == 0) {
-		print("a == 0!");
+class TestClass {
+	public let a: int;
+	constructor() void {
+		this.a = 0;
 	}
+	public function test() void {
+		this.a--;
+	}
+}
+
+function main() void {
+	let a: int = 0;
+	for (let i: int = 0; i < 100; ++i)
+		if (i % 2 == 0)
+			a++;
+	print(a);
 }

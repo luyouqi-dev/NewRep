@@ -41,6 +41,7 @@ CONS OPER_NOP  = "NOP";
 CONS OPER_SPACE = "NEW_SPACE";
 CONS OPER_OBJECT_BLOCK = "NEW_BLOCK";
 CONS FUNC_BEG  = "FUNC_BEGIN";
+CONS OPER_RET_STACK_TOP = "RET_STACK_TOP";
 CONS OPER_GET_RET_VAL = "GET_RETURN_VALUE";
 CONS FUNC_END  = "FUNC_END";
 CONS OPER_NOT  = "NOT";
@@ -920,12 +921,10 @@ Name* Compiler::visit_class_node(AST *a) {
 	auto constructor_bdy_list = constructor->children[1]->children;
 	auto ret_type = make_id_type_node(constructor->children[2]);
 	if (ret_type.rootType != "void" && ret_type.rootType != "int") {
-		// cout << ret_type.rootType << endl;
 		err_out(COMPILE_TIME_ERROR, "\"constructor\" is not a legitimate constructor", 0);
 	}
 	opcs.push_back(OperatorCommand(make_label(), {FUNC_BEG, class_name}));
 	opcs.push_back(OperatorCommand(make_label(), {OPER_NEW, class_name}));
-	// opcs.push_back(OperatorCommand(make_label(), {OPER_SPACE, to_string(a->class_size)}));
 	for (int i = 0; i < constructor_val_list.size(); ++i) {
 		auto cur_val = constructor_val_list[i]->data.data;
 		opcs.push_back(OperatorCommand(make_label(), {OPER_LOAD, cur_val, "#" + to_string(i)}));
@@ -1371,9 +1370,7 @@ int MainCompiler::make_class_id() {
 		current_id != BS_STR &&
 		current_id != BS_CHAR &&
 		current_id != BS_DOUBLE &&
-		current_id != BS_BOOL &&
-		current_id != BS_LIST &&
-		current_id != BS_STACK
+		current_id != BS_BOOL
 	) {
 		return current_id;
 	}
@@ -1386,12 +1383,7 @@ int MainCompiler::make_func_id() {
 		current_id != PRINT_ &&
 		current_id != INPUT_ &&
 		current_id != TO_STRING_ &&
-		current_id != TO_INTEGER_ &&
-		current_id != LSIZE &&
-		current_id != LAPPEND &&
-		current_id != SPOP &&
-		current_id != SPSH &&
-		current_id != STOP	
+		current_id != TO_INTEGER_
 	) { return current_id; }
 	return make_func_id();
 }

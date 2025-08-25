@@ -149,42 +149,6 @@ void VirtualMachine::call_build_in(int bfid) {
 			CUR_FRAME.psh(std::stoi(s));
 			break;
 		}
-		case LSIZE : {
-			int addr = CUR_FRAME.pop();
-			int si   = *(heap + addr + LIST_SIZE_OFFSET);
-			CUR_FRAME.psh(si);
-			break;
-		}
-		case LAPPEND : {
-			int object_address = CUR_FRAME.pop();
-			int value = CUR_FRAME.pop();
-			append_value(object_address, value);
-			break;
-		}
-		case SPOP : {
-			int object_address = CUR_FRAME.pop();
-			(*(heap + object_address + STACK_TOP_OFFSET))--;
-			break;
-		}
-		case SPSH : {
-			int object_address = CUR_FRAME.pop();
-			int value = CUR_FRAME.pop();
-			append_value(object_address, value);
-			break;
-		}
-		case STOP  : {
-			int object_address = CUR_FRAME.pop();
-			int size = *(heap + object_address + 1);
-			if (size > 0) {
-				int top_value = *(heap + object_address + size);
-				CUR_FRAME.psh(top_value);
-			} else {
-				std::cerr << "STOP error: empty stack" << std::endl;
-				CUR_FRAME.psh(0);
-			}
-			break;
-		}
-
 		default: {
 			cout << "Error: build-in function not found\n";
 			exit(-1);
