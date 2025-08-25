@@ -1411,6 +1411,7 @@ Function MainCompiler::visit_function(const ThreeCodeFunction& func) {
 		make_atom(&result, fopcs[pos]);
 		++pos;
 	}
+	
 	int pos1 = 0;
 	while (pos1 < result.codes.size()) {
 		if (is_asm(result.codes[pos1])) {

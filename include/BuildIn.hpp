@@ -65,6 +65,7 @@ unordered_map<int, int> asm_value_size = {
 	{ _add,        0 },
 	{ _sub,        0 },
 	{ _nop,        0 },
+	{_cels,        0 },
 	{ _mul,        0 },
 	{ _div,        0 },
 	{ _mod,        0 },
@@ -73,7 +74,8 @@ unordered_map<int, int> asm_value_size = {
 	{ _left_mv,    0 },
 	{ _right_mv,   0 },
 	{ _dup,        0 },
-	{ _psh,        1 }, 
+	{ _psh,        1 },
+	{_sparam,       0},
 	{ _pop,        0 },
 	{ _a_psh,      0 }, 
 	{ _a_pop,      0 },
@@ -103,6 +105,7 @@ unordered_map<int, string> asm_string_map = {
 	{ _add,    "_add"     },
 	{ _sub,    "_sub"     },
 	{ _nop,    "_nop"     },
+	{_cels, "_cels"},
 	{ _mul,    "_mul"     },
 	{ _div,    "_div"     },
 	{ _mod,    "_mod"     },
@@ -126,7 +129,8 @@ unordered_map<int, string> asm_string_map = {
 	{ _and,    "_and"     },
 	{ _not,    "_not"     },
 	{ _cbg,    "_cbg"     }, 
-	{ _cls,    "_cls"     }, 
+	{ _cls,    "_cls"     },
+	{_sparam, "_sparam"},
 	{ _ceq,    "_ceq"     },
 	{ _cne,    "_cne"     },
 	{ _jt,    "_jt"      },
@@ -144,7 +148,7 @@ void format_assembly(vector<int> asm_, string tabs = "") {
 	while (i < asm_.size()) {
 		int c = asm_[i++];
 		if (!is_asm(c)) {
-			printf("%sWarn: byte code %d not a operator command\n", tabs.c_str(), c);
+			printf("%sWarn: byte code 0x%x not a operator command\n", tabs.c_str(), c);
 			continue;
 		}
 		printf("%s%s     ", tabs.c_str(), asm_string_map[c].c_str());
