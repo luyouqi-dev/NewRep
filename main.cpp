@@ -58,7 +58,11 @@ void file() {
 			cout << endl;
 		}
 		MainCompiler mc(cmds);
-		mc.vmbc.debug();
+		auto functions = mc.vmbc.functions;
+		for (auto i : functions) {
+			printf("Function[%d]: \n", i.id);
+			format_assembly(i.codes, "    ");
+		}
 	};
 	cmp();
 #endif

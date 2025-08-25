@@ -99,7 +99,60 @@ unordered_map<int, int> asm_value_size = {
 	{ _lea,        0 },
 };
 
+unordered_map<int, string> asm_string_map = {
+	{ _add,    "_add"     },
+	{ _sub,    "_sub"     },
+	{ _nop,    "_nop"     },
+	{ _mul,    "_mul"     },
+	{ _div,    "_div"     },
+	{ _mod,    "_mod"     },
+	{ _pow,    "_pow"     },
+	{ _xor,    "_xor"     },
+	{ _left_mv,    "_left_mv" },
+	{ _right_mv,    "_right_mv"},
+	{ _dup,    "_dup"     },
+	{ _psh,    "_psh"     }, 
+	{ _pop,    "_pop"     },
+	{ _a_psh,    "_a_psh"   }, 
+	{ _a_pop,    "_a_pop"   },
+	{ _imm,    "_imm"     }, 
+	{ _i_load,    "_i_load"  }, 
+	{ _i_stor,    "_i_stor"  }, 
+	{ _param,    "_param"   },
+	{ _hsst,    "_hsst"    },
+	{ _new,    "_new"     },
+	{ _sdup,    "_sdup"    },
+	{ _or,    "_or"      },
+	{ _and,    "_and"     },
+	{ _not,    "_not"     },
+	{ _cbg,    "_cbg"     }, 
+	{ _cls,    "_cls"     }, 
+	{ _ceq,    "_ceq"     },
+	{ _cne,    "_cne"     },
+	{ _jt,    "_jt"      },
+	{ _jmp,    "_jmp"     },
+	{ _call,    "_call"    }, 
+	{ _scall,    "_scall"   },
+	{ _ret,    "_ret"     },
+	{ _lea,    "_lea"     },
+};
+
 inline bool is_asm(int x) { return asm_value_size.find(x) != asm_value_size.end(); }
+
+void format_assembly(vector<int> asm_, string tabs = "") {
+	int i = 0;
+	while (i < asm_.size()) {
+		int c = asm_[i++];
+		if (!is_asm(c)) {
+			printf("%sWarn: byte code %d not a operator command\n", tabs.c_str(), c);
+			continue;
+		}
+		printf("%s%s     ", tabs.c_str(), asm_string_map[c].c_str());
+		for (int j = 0; j < asm_value_size[c]; ++j)
+			printf("%d     ", asm_[i++]);
+		printf("\n");
+	}
+};
 
 enum Opera { SET_MAIN, SET_CLASS, SET_FUNC };
 

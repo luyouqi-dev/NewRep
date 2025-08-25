@@ -1,11 +1,6 @@
-class A {
-  public constructor(this: A) void {
-    this.f = 0;
-  }
-  public let f: int;
-}
-
 function main() void {
-	let x: A = new A();
-	let w = x.f;
+	let a = 0;
+	if (a == 0) {
+		print("a == 0!");
+	}
 }

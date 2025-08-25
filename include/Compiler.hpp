@@ -642,7 +642,6 @@ PName Compiler::visit_while_loop_node(AST* a) {
 }
 
 PName Compiler::visit_bin_op_node(AST* a) {
-	cout << "in function visit_bin_op_node - value.type = " << a->type << endl;
 	normal_debug();
 	if (!a) {
 		err_out(COMPILE_TIME_ERROR, "meet null node", 0);
@@ -926,7 +925,7 @@ Name* Compiler::visit_class_node(AST *a) {
 	}
 	opcs.push_back(OperatorCommand(make_label(), {FUNC_BEG, class_name}));
 	opcs.push_back(OperatorCommand(make_label(), {OPER_NEW, class_name}));
-	opcs.push_back(OperatorCommand(make_label(), {OPER_SPACE, to_string(a->class_size)}));
+	// opcs.push_back(OperatorCommand(make_label(), {OPER_SPACE, to_string(a->class_size)}));
 	for (int i = 0; i < constructor_val_list.size(); ++i) {
 		auto cur_val = constructor_val_list[i]->data.data;
 		opcs.push_back(OperatorCommand(make_label(), {OPER_LOAD, cur_val, "#" + to_string(i)}));
@@ -1145,8 +1144,6 @@ public:
 	stack<CScope> scopes;
 	unordered_map<string, ThreeCodeObject> object_rec; 
 	unordered_map<string, ThreeCodeFunction> func_rec;
-	unordered_map<string, int> func_id_rec;
-	unordered_map<string, int> class_id_rec;
 	VMByteCode vmbc;
 	int class_cnt = 0, func_cnt_ = 0;
 	int make_class_id();
@@ -1166,6 +1163,7 @@ public:
 	void save_value(Function*, string, string);
 	void make_ret(Function*, OperatorCommand);
 	void make_load(Function*, OperatorCommand);
+	void make_new(Function*, OperatorCommand);
 	void make_load_ret_val(Function*, OperatorCommand);
 	void setup_build_in();
 	void make_var_define(Function*, OperatorCommand);
@@ -1174,6 +1172,13 @@ public:
 	void make_string(Function*, string);
 	void make_param(Function*, OperatorCommand);
 };
+
+void MainCompiler::make_new(Function *fn, OperatorCommand op) {
+	int class_id = object_rec[op.codes[1]].id;
+	fn->codes.push_back(_psh);
+	fn->codes.push_back(class_id);
+	fn->codes.push_back(_new);
+}
 
 void MainCompiler::make_var_define(Function *fn, OperatorCommand op) {
 	scopes.top().make_var(op.codes[1]);
@@ -1410,13 +1415,17 @@ Function MainCompiler::visit_function(const ThreeCodeFunction& func) {
 	while (pos1 < result.codes.size()) {
 		if (is_asm(result.codes[pos1])) {
 			int offset = 1;
-			if (asm_value_size[result.codes[pos1]]) 
+			if (asm_value_size[result.codes[pos1]])
 				offset = asm_value_size[result.codes[pos1]];
-			int i = asm_value_size[result.codes[pos1]];
-			if (i == _jmp || i == _jt) {
-				int label_id = result.codes[pos1 + 1];
-				if (label_id < 0) 
-					result.codes[pos1 + 1] = scopes.top().label_map[scopes.top().unsolve_label_buffer[label_id]];
+			if (result.codes[pos1] == _jmp || result.codes[pos1] == _jt) {
+				++pos1;
+				--offset;
+				int label_id = result.codes[pos1];
+				if (label_id < 0) {
+					string unsolve_id = scopes.top().unsolve_label_buffer[label_id];
+					result.codes[pos1++] = scopes.top().label_map[unsolve_id];
+					continue;
+				}
 			}
 			pos1 += offset;
 		} else {
@@ -1496,29 +1505,44 @@ void MainCompiler::make_atom(Function *fn, OperatorCommand op) {
 	if (cmd == OPER_RET) {
 		make_ret(fn, op);
 		return;
+	} else if (cmd == OPER_RET || cmd == OPER_LEAVE) {
+		make_ret(fn, op);
+		return;
 	} else if (cmd == OPER_DIV || cmd == OPER_ADD || cmd == OPER_MUL || cmd == OPER_SUB || cmd == OPER_MOD) {
 		make_self_calc(fn, op);
 		return;
 	} else if (cmd == OPER_CALL) {
 		make_call(fn, op.codes[1]);
 		return;
+	} else if (cmd == OPER_IF) {
+		make_if(fn, op.label_name);
 	} else if (cmd == OPER_GOTO) {
 		make_goto(fn, op.codes[1]);
+		return;
+	} else if (cmd == OPER_NEW) {
+		make_new(fn, op);
 		return;
 	} else if (cmd == OPER_LOAD || cmd == OPER_VAR_ASSI) {
 		make_load(fn, op);
 		return;
-	} else if (cmd == OPER_GET_RET_VAL) {
+	} else if (cmd == OPER_GET_RET_VAL || cmd == OPER_LD_RET) {
 		make_load_ret_val(fn, op);
 		return;
 	} else if (cmd == OPER_VAR) {
 		make_var_define(fn, op);
+		return;
+	} else if (cmd == OPER_NOP) {
+		fn->codes.push_back(_nop);
+		return;
 	} else if (cmd == OPER_PARAM) {
 		make_param(fn, op);
 		return;
 	} else {
 		if (op.codes[1] == "=") {
 			make_bin_op(fn, op);
+			return;
+		} else {
+			cout << "Operator '" << cmd << "' not supposed\n";
 			return;
 		}
 	}
