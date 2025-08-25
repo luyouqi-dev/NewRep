@@ -8,11 +8,27 @@
 using namespace std;
 #define IS_WORD(x) (('a' <= (x) && (x) <= 'z') || ('A' <= (x) && (x) <= 'Z') || (x) == '_')
 
+class AST;
+
 class IdTypeNode {
 public:
+	bool is_block = false;
+	AST* block_size = nullptr;
 	string rootType;
 	vector<IdTypeNode> templateType;
+	IdTypeNode(bool, AST*);
+	IdTypeNode();
 };
+
+IdTypeNode::IdTypeNode(bool is_block, AST* block_size) {
+	this->is_block = is_block;
+	this->block_size = block_size;
+}
+
+IdTypeNode::IdTypeNode() {
+
+}
+
 
 void prd(int dep) {
 	while (dep--) cout << "   ";
@@ -210,7 +226,6 @@ public:
 	}
 	IdTypeNode idt;
 	int class_size, offset;
-	int member_offset;
 	string parent_name;
 	bool is_block  = false;
 	AST* block_size = nullptr;
@@ -222,10 +237,6 @@ public:
 	Token data;
 	std::string type;
 };
-
-void set_offset(AST* a, int& of) {
-	a->offset = of++;
-}
 
 class DefaultNode : public AST {
 public:
@@ -368,6 +379,8 @@ public:
 IdTypeNode make_id_type_node(AST* node) {
 	IdTypeNode itn;
 	itn.rootType = node->data.data;
+	itn.is_block = node->is_block;
+	itn.block_size = node->block_size;
 	if (!node->children.empty())
 		for (auto i : node->children)
 			itn.templateType.push_back(make_id_type_node(i));
@@ -578,16 +591,12 @@ public:
 
 class ContinueNode : public AST {
 public:
-	ContinueNode() {
-		type = AST_CONTINUE;
-	}
+	ContinueNode() { type = AST_CONTINUE; }
 };
 
 class BreakNode : public AST {
 public:
-	BreakNode() {
-		type = AST_BREAK;
-	}
+	BreakNode() { type = AST_BREAK; }
 };
 
 class WhileLoopNode : public AST {

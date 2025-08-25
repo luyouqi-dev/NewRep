@@ -8,8 +8,23 @@ class TestClass {
 	}
 }
 
+class List {
+	public let az: int = 0;
+	constructor(n: int) void {
+
+	}
+	public function elementAt(pos: int) int {
+		return 0;
+	}
+	public function append(num: int) void {
+		return;
+	}
+}
+
 function main() void {
 	let a: int = 0;
+	let i = new List();
+	let l = i.az + 1;
 	for (let i: int = 0; i < 100; ++i)
 		if (i % 2 == 0)
 			a++;

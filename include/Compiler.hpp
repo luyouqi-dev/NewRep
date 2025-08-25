@@ -762,8 +762,8 @@ PName Compiler::visit_self_mod_node(AST* a) {
 PName Compiler::visit_mem_malloc_node(AST* a) {
 	normal_debug();
 	if (!a) RENUL;
-	string class_name;
-	class_name = a->children[0]->children[0]->data.data;
+	// string class_name;
+	// class_name = a->children[0]->children[0]->data.data;
 	if (!a->children[0]->is_block) {
 		string name = make_this_name(a->data.data);
 		string ret_name = visit_call_node(a->children[0])->name;

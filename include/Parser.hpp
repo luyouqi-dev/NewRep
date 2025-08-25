@@ -65,7 +65,6 @@ class Parser {
 public:
 	Parser(std::vector<Token> tokens, int file = 1) {
 		_tokens = tokens;
-		offset = 0;
 		export_map = &result.export_map;
 		lin = col = 1;
 		pos = -1;
@@ -76,25 +75,18 @@ public:
 		for (const auto& i : build_in_class) add_to_global_scope(i, SK_CLASS);
 		main_parse();
 	}
-	int offset;
 	int lin, col;
-	AST* asr;
 	Program result;
 	void main_parse();
 	map<string, int> class_size_record;
 	unordered_map<string, ParseTimeClassRecord> ptcr;
+	unordered_map<string, IdTypeNode> func_return_type_record;
 	unordered_map<string, int> class_map;
 	unordered_map<string, ExportId>* export_map;
-	unordered_map<string, SymbolId> id_map;
 	VarList global;
 	int class_cnt, func_cnt, var_cnt;
 	int make_class_id();
 	int pos;
-	map<string, int> var_map;
-	map<string, int> func_map;
-	// Var ->  1
-	// Func -> 2
-	// Class ->3
 	vector<VarList> scope;
 private:
 	void leave();
@@ -150,6 +142,7 @@ private:
 	AST* make_constructor_call_();
 	AST* make_expr();
 	AST* make_get_value_node(AST*);
+	IdTypeNode derive_var_type(AST*);
 	AST* make_and_node();
 	AST* make_comp_node();
 	AST* make_self_add_node(AST*);
@@ -161,6 +154,7 @@ private:
 	AST* make_self_mul_node(AST*);
 	AST* make_function_define();
 	AST* make_cast_node(AST*);
+	bool type_comp(IdTypeNode, IdTypeNode);
 	AST* make_or_node();
 	AST* atom();
 	AST* make_func_call(AST*);
@@ -172,6 +166,73 @@ private:
 	string get_mem_type(string, string);
 	bool is_type(AST*);
 };
+
+bool Parser::type_comp(IdTypeNode a, IdTypeNode b) {
+	if (a.rootType != b.rootType || a.templateType.size() != b.templateType.size())
+		return false;
+	for (int i = 0; i < a.templateType.size(); ++i)
+		if (!type_comp(a.templateType[i], b.templateType[i]))
+			return false;
+	return true;
+}
+
+IdTypeNode Parser::derive_var_type(AST *a) {
+	if (a->type == AST_STRING) {
+		IdTypeNode itn;
+		itn.rootType = "string";
+		return itn;
+	} else if (a->type == AST_DIGIT) {
+		IdTypeNode itn;
+		itn.rootType = "int";
+		return itn;
+	} else if (a->type == AST_LIST) {
+		IdTypeNode itn;
+		itn.rootType = "list";
+		itn.templateType.push_back(derive_var_type(a->children[0]));
+		return itn;
+	} else if (a->type == AST_BIN_OP) {
+		auto left = a->children[0];
+		auto right = a->children[1];
+		auto lt = derive_var_type(left);
+		auto rt = derive_var_type(right);
+		if (!type_comp(lt, rt)) {
+			printf("TypeError: unsupported operand type for %s: '%s' and '%s'\n",
+				   a->data.data.c_str(), lt.rootType.c_str(), rt.rootType.c_str());
+			exit(-1);
+		}
+		return lt;
+	} else if (a->type == AST_MEMBER) {
+		IdTypeNode itn;
+		auto parentName = a->parent_name;
+		itn.rootType = ptcr[parentName].get_root_type(a->children[1]->data.data);
+		return itn;
+	} else if (a->type == AST_FUNC_CALL) {
+		auto func_name = a->children[0]->children[1]->data.data;
+		auto ret_val_t = func_return_type_record.find(func_name);
+		if (ret_val_t == func_return_type_record.end()) {
+			printf("TypeError: function return value type unkonwn\n");
+			exit(-1);
+		}
+		return ret_val_t->second;
+	} else if (a->type == AST_CONV) {
+		return make_id_type_node(a->children[0]);
+	} else if (a->type == AST_MEM_MALLOC) {
+		auto value = a->children[0];
+		if (value->type == AST_TYPE)
+			return make_id_type_node(value);
+		return make_id_type_node(value->children[0]);
+	} else if (a->type == AST_ID) {
+		auto t = scope[scope.size() - 1].var_type_record.find(a->data.data);
+		if (t == scope[scope.size() - 1].var_type_record.end()) {
+			cout << "Name '" << a->data.data << "' not found\n";
+			exit(-1);
+		}
+		return t->second;
+	} else {
+		cout << "Unknown type: " << a->type << endl;
+		exit(-1);
+	}
+}
 
 void Parser::make_lib_class(Token t) {
 	string path = t.data;
@@ -314,9 +375,7 @@ AST* Parser::make_member_node() {
 				data_t = base->children[0]->data.data;
 				base->parent_name = get_type(data_t).templateType[0].rootType;
 			}
-			else {
-				base->parent_name = type;
-			}
+			else base->parent_name = type;
 		} else {
 			base->parent_name = type;
 		}
@@ -485,7 +544,6 @@ AST *Parser::make_var_define() {
 		err_out(PARSE_TIME_ERROR, "want TT_ID, meet %s, lin %d, col %d, pos %d", current->type.c_str(), lin, col, pos);
 	}
 	var_name = *current;
-	var_map[var_name.data] = var_cnt;
 	add(var_name.data, SK_VAR);
 	advance();
 	if (match_data(":")) {
@@ -496,11 +554,21 @@ AST *Parser::make_var_define() {
 		advance();
 		data = make_expr();
 	}
+	auto v = new VarDefineNode(var_name, type, data);
 	if (type) {
 		auto type_ = make_id_type_node(type);
+		v->idt = type_;
 		scope[scope.size() - 1].add_var(var_name.data, type_);
+	} else {
+		if (!data) {
+			printf("Need a type or initial value\n");
+			exit(-1);
+		}
+		auto _type = derive_var_type(data);
+		v->idt = _type;
+		scope[scope.size() - 1].add_var(var_name.data, _type);
 	}
-	return new VarDefineNode(var_name, type, data);
+	return v;
 }
 
 AST *Parser::make_and_node() {
@@ -677,10 +745,8 @@ AST *Parser::make_function_define() {
 		exit(-1);
 	}
 	func_name = *current;
-	id_map[func_name.data] = FUNC_ID;
 	if (func_name.data.size() > 0)
 		add(func_name.data, SK_FUNCTION);
-	func_map[func_name.data] = func_cnt;
 	advance();
 	if (match_data("<")) templates = make_templates();
 	consume("(", __func__ );
@@ -698,6 +764,7 @@ AST *Parser::make_function_define() {
 	check_type(ret_type);
 	body = make_block();
 	leave();
+	func_return_type_record[func_name.data] = make_id_type_node(ret_type);
 	return new FunctionNode(func_name, new BlockNode(vars), body, ret_type, templates);
 }
 
@@ -759,7 +826,6 @@ AST *Parser::make_class() {
 	itn.rootType = name.data;
 	add_var("this", itn);
 	ptcr[name.data] = ParseTimeClassRecord();
-	id_map[name.data] = CLASS_ID;
 	add(name.data, SK_CLASS);
 	vector<string> parent_map;
 	class_cnt++;
